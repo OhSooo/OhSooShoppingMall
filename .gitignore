@@ -35,3 +35,15 @@ out/
 
 ### VS Code ###
 .vscode/
+
+
+# Environment
+.env
+*.env
+
+# Spring Boot (ONLY resources)
+src/main/resources/application.yml
+src/main/resources/application-*.yml
+src/main/resources/application.properties
+src/main/resources/application-*.properties
+
