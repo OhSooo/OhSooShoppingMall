@@ -1,5 +1,8 @@
 package com.ohsooo.platform.ohsooshoppingmall.store.dto;
 
+import lombok.Getter;
+
+@Getter
 public class CreateStoreRequest {
 
     private Long ownerId;
@@ -7,17 +10,5 @@ public class CreateStoreRequest {
     private String description;
 
     protected CreateStoreRequest() {
-    }
-
-    public Long getOwnerId() {
-        return ownerId;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getDescription() {
-        return description;
     }
 }

@@ -60,4 +60,8 @@ public class Store {
     public void delete() {
         this.status = StoreStatus.DELETED;
     }
+
+    public void changeStatus(StoreStatus status) {
+        this.status = status;
+    }
 }
