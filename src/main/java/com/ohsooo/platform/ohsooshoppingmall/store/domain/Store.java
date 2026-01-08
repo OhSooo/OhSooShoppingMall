@@ -1,7 +1,10 @@
 package com.ohsooo.platform.ohsooshoppingmall.store.domain;
 import jakarta.persistence.*;
+import lombok.*;
 import java.time.LocalDateTime;
 
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "stores")
 public class Store {
@@ -21,40 +24,40 @@ public class Store {
     @Column(length = 255)
     private String description;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private StoreStatus status;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    protected Store() {
-    }
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
     public Store(Long ownerId, String name, String description) {
         this.ownerId = ownerId;
         this.name = name;
         this.description = description;
+        this.status = StoreStatus.ACTIVE;       // 기본값: ACTIVE
     }
 
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
     }
 
-    public Long getStoreId() {
-        return storeId;
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 
-    public Long getOwnerId() {
-        return ownerId;
+    public void deactivate() {
+        this.status = StoreStatus.INACTIVE;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+    public void delete() {
+        this.status = StoreStatus.DELETED;
     }
 }
