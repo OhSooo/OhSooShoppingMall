@@ -51,6 +51,10 @@ dependencies {
 	// flyway
 	implementation 'org.flywaydb:flyway-core:10.15.2'
 	implementation 'org.flywaydb:flyway-database-postgresql:10.15.2'
+
+	// lombok
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
 }
 
 tasks.named('test') {
