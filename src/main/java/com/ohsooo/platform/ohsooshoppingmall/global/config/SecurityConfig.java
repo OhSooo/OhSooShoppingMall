@@ -1,4 +1,4 @@
-package com.ohsooo.platform.ohsooshoppingmall.common.cofig;
+package com.ohsooo.platform.ohsooshoppingmall.global.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

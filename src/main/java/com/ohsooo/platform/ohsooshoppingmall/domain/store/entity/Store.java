@@ -1,4 +1,4 @@
-package com.ohsooo.platform.ohsooshoppingmall.store.domain;
+package com.ohsooo.platform.ohsooshoppingmall.domain.store.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;

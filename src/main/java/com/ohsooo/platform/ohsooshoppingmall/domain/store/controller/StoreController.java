@@ -1,16 +1,16 @@
-package com.ohsooo.platform.ohsooshoppingmall.store.controller;
+package com.ohsooo.platform.ohsooshoppingmall.domain.store.controller;
 
 
-import com.ohsooo.platform.ohsooshoppingmall.store.dto.StoreStatusChangeRequest;
+import com.ohsooo.platform.ohsooshoppingmall.domain.store.dto.request.StoreStatusChangeRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.ohsooo.platform.ohsooshoppingmall.store.domain.Store;
-import com.ohsooo.platform.ohsooshoppingmall.store.dto.CreateStoreRequest;
-import com.ohsooo.platform.ohsooshoppingmall.store.dto.StoreResponse;
-import com.ohsooo.platform.ohsooshoppingmall.store.service.StoreService;
+import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.Store;
+import com.ohsooo.platform.ohsooshoppingmall.domain.store.dto.request.CreateStoreRequest;
+import com.ohsooo.platform.ohsooshoppingmall.domain.store.dto.response.StoreResponse;
+import com.ohsooo.platform.ohsooshoppingmall.domain.store.service.StoreService;
 
 import java.util.List;
 
