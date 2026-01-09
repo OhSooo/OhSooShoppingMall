@@ -1,5 +1,9 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.store.service;
+import com.ohsooo.platform.ohsooshoppingmall.domain.store.dto.response.StoreResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.StoreStatus;
+import com.ohsooo.platform.ohsooshoppingmall.domain.store.mapper.StoreMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -8,17 +12,14 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.store.repository.StoreReposi
 
 import java.util.List;
 
+@Slf4j
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class StoreService {
 
     private final StoreRepository storeRepository;
-
-
-    // 생성자 주입 (권장 방식)
-    public StoreService(StoreRepository storeRepository) {
-        this.storeRepository = storeRepository;
-    }
+    private final StoreMapper storeMapper;
 
     /**
      * 스토어 생성
@@ -48,8 +49,9 @@ public class StoreService {
      * - status = ACTIVE 조건
      */
     @Transactional(readOnly = true)
-    public List<Store> getActiveStores() {
-        return storeRepository.findAllByStatus(StoreStatus.ACTIVE);
+    public List<StoreResponse> getActiveStores() {
+        List<Store> storeList = storeRepository.findAllByStatus(StoreStatus.ACTIVE);
+        return storeList.stream().map(storeMapper::toStoreResponse).toList();
     }
 
     /**

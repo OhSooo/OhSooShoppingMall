@@ -5,8 +5,10 @@ import java.time.LocalDateTime;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.Store;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.StoreStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Builder;
 import lombok.Getter;
 
+@Builder
 @Getter
 @Schema(description = "스토어 응답 DTO")
 public class StoreResponse {
