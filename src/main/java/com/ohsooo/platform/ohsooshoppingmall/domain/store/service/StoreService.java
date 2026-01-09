@@ -1,9 +1,9 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.store.service;
-import com.ohsooo.platform.ohsooshoppingmall.domain.store.domain.StoreStatus;
+import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.StoreStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.ohsooo.platform.ohsooshoppingmall.domain.store.domain.Store;
+import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.Store;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.repository.StoreRepository;
 
 import java.util.List;

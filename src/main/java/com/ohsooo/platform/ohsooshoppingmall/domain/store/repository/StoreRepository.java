@@ -1,7 +1,7 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.store.repository;
-import com.ohsooo.platform.ohsooshoppingmall.domain.store.domain.StoreStatus;
+import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.StoreStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
-import com.ohsooo.platform.ohsooshoppingmall.domain.store.domain.Store;
+import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.Store;
 
 import java.util.List;
 

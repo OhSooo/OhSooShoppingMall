@@ -1,6 +1,6 @@
-package com.ohsooo.platform.ohsooshoppingmall.domain.store.dto;
+package com.ohsooo.platform.ohsooshoppingmall.domain.store.dto.request;
 
-import com.ohsooo.platform.ohsooshoppingmall.domain.store.domain.StoreStatus;
+import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.StoreStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 

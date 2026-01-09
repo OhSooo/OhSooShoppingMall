@@ -1,6 +1,6 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.store.controller;
 
-import com.ohsooo.platform.ohsooshoppingmall.domain.store.dto.StoreStatusChangeRequest;
+import com.ohsooo.platform.ohsooshoppingmall.domain.store.dto.request.StoreStatusChangeRequest;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.service.StoreService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
