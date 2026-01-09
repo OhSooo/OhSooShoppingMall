@@ -2,6 +2,8 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.store.controller;
 
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.dto.request.StoreStatusChangeRequest;
+import com.ohsooo.platform.ohsooshoppingmall.global.response.ApiResponse;
+import com.ohsooo.platform.ohsooshoppingmall.global.response.BaseResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -48,11 +50,13 @@ public class StoreController {
             description = "활성화된(ACTIVE) 스토어 목록을 조회합니다"
     )
     @GetMapping
-    public List<StoreResponse> getStores() {
-        return storeService.getActiveStores()
-                .stream()
-                .map(StoreResponse::from)
-                .toList();
+    public ResponseEntity<BaseResponse<List<StoreResponse>>> getStores() {
+
+
+        List<StoreResponse> response = storeService.getActiveStores();
+        return ResponseEntity.ok(BaseResponse.success("전체 스토어 조회 성공", response));
+
+
     }
 
     @Operation(
