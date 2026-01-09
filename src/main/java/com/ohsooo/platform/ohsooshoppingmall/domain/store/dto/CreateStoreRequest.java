@@ -1,4 +1,4 @@
-package com.ohsooo.platform.ohsooshoppingmall.store.dto;
+package com.ohsooo.platform.ohsooshoppingmall.domain.store.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;

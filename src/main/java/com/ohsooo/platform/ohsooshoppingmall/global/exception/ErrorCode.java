@@ -1,4 +1,4 @@
-package com.ohsooo.platform.ohsooshoppingmall.common.exception;
+package com.ohsooo.platform.ohsooshoppingmall.global.exception;
 
 import org.springframework.http.HttpStatus;
 

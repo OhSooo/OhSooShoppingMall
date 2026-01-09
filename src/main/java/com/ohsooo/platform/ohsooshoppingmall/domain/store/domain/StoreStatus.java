@@ -1,4 +1,4 @@
-package com.ohsooo.platform.ohsooshoppingmall.store.domain;
+package com.ohsooo.platform.ohsooshoppingmall.domain.store.domain;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 

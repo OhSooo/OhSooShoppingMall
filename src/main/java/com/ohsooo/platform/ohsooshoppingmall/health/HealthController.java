@@ -1,6 +1,6 @@
 package com.ohsooo.platform.ohsooshoppingmall.health;
 
-import com.ohsooo.platform.ohsooshoppingmall.common.response.ApiResponse;
+import com.ohsooo.platform.ohsooshoppingmall.global.response.ApiResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 

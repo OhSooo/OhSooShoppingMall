@@ -1,9 +1,9 @@
-package com.ohsooo.platform.ohsooshoppingmall.store.dto;
+package com.ohsooo.platform.ohsooshoppingmall.domain.store.dto;
 
 import java.time.LocalDateTime;
 
-import com.ohsooo.platform.ohsooshoppingmall.store.domain.Store;
-import com.ohsooo.platform.ohsooshoppingmall.store.domain.StoreStatus;
+import com.ohsooo.platform.ohsooshoppingmall.domain.store.domain.Store;
+import com.ohsooo.platform.ohsooshoppingmall.domain.store.domain.StoreStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 

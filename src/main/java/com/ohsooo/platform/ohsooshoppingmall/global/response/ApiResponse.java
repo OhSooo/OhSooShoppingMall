@@ -1,4 +1,4 @@
-package com.ohsooo.platform.ohsooshoppingmall.common.response;
+package com.ohsooo.platform.ohsooshoppingmall.global.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 

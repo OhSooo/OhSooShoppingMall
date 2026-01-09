@@ -1,6 +1,6 @@
-package com.ohsooo.platform.ohsooshoppingmall.common.exception;
+package com.ohsooo.platform.ohsooshoppingmall.global.exception;
 
-import com.ohsooo.platform.ohsooshoppingmall.common.response.ApiResponse;
+import com.ohsooo.platform.ohsooshoppingmall.global.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;

@@ -1,4 +1,4 @@
-package com.ohsooo.platform.ohsooshoppingmall.common.exception;
+package com.ohsooo.platform.ohsooshoppingmall.global.exception;
 
 
 public class BusinessException extends RuntimeException {
