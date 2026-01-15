@@ -15,7 +15,7 @@ CREATE TABLE users (
                        address VARCHAR(255) NOT NULL,
                        role VARCHAR(20) NOT NULL DEFAULT 'GENERAL',
                        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-                       updated_at TIMESTAMPTZ,
+                       updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
                        is_deleted BOOLEAN NOT NULL DEFAULT false,
                        deleted_at TIMESTAMPTZ,
                        CONSTRAINT chk_user_role CHECK (role IN ('GENERAL', 'OWNER', 'ADMIN')),
@@ -71,7 +71,7 @@ CREATE TABLE stores (
                         description VARCHAR(255),
                         status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
                         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-                        updated_at TIMESTAMPTZ,
+                        updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
                         CONSTRAINT chk_store_status
                             CHECK (status IN ('ACTIVE', 'INACTIVE', 'SUSPENDED', 'DELETED')),
                         CONSTRAINT fk_store_owner
@@ -96,7 +96,7 @@ CREATE TABLE items (
                        rating FLOAT NOT NULL DEFAULT 0.0,
                        review_count INT NOT NULL DEFAULT 0,
                        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-                       updated_at TIMESTAMPTZ,
+                       updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
                        is_deleted BOOLEAN NOT NULL DEFAULT false,
                        deleted_at TIMESTAMPTZ,
                        CONSTRAINT chk_item_status
@@ -289,7 +289,7 @@ CREATE TABLE reviews (
                          title VARCHAR(255) NOT NULL,
                          contents TEXT,
                          created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-                         updated_at TIMESTAMPTZ,
+                         updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
                          is_deleted BOOLEAN NOT NULL DEFAULT false,
                          deleted_at TIMESTAMPTZ,
                          CONSTRAINT fk_review_order_item
