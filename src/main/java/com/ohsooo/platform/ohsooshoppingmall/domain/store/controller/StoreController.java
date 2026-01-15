@@ -36,13 +36,13 @@ public class StoreController {
     public ResponseEntity<StoreResponse> createStore(
             @RequestBody CreateStoreRequest request
     ) {
-        Store store = storeService.createStore(
-                request.getOwnerId(),
-                request.getName(),
-                request.getDescription()
+        return ResponseEntity.ok(
+                storeService.createStore(
+                        request.getOwnerId(),
+                        request.getName(),
+                        request.getDescription()
+                )
         );
-
-        return ResponseEntity.ok(StoreResponse.from(store));
     }
 
     @Operation(
@@ -67,8 +67,7 @@ public class StoreController {
     public ResponseEntity<StoreResponse> getStore(
             @PathVariable Long storeId
     ) {
-        Store store = storeService.getStore(storeId);
-        return ResponseEntity.ok(StoreResponse.from(store));
+        return ResponseEntity.ok(storeService.getStore(storeId));
     }
 
     @Operation(
