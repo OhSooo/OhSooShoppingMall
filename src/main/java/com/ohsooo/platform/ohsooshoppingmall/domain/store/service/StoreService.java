@@ -26,9 +26,10 @@ public class StoreService {
      * - 트랜잭션 필요 (쓰기)
      * - status, createdAt, updatedAt은 엔티티에서 자동 설정
      */
-    public Store createStore(Long ownerId, String name, String description) {
+    public StoreResponse createStore(Long ownerId, String name, String description) {
         Store store = new Store(ownerId, name, description);
-        return storeRepository.save(store);
+        Store saved = storeRepository.save(store);
+        return storeMapper.toStoreResponse(saved);
     }
 
     /**
@@ -37,11 +38,24 @@ public class StoreService {
      * - 존재하지 않으면 예외
      */
     @Transactional(readOnly = true)
-    public Store getStore(Long storeId) {
+    public StoreResponse getStore(Long storeId) {
+        Store store = storeRepository.findById(storeId)
+                .orElseThrow(() -> new IllegalArgumentException("스토어가 존재하지 않습니다"));
+        return storeMapper.toStoreResponse(store);
+    }
+
+    /**
+     * 스토어 엔티티 단건 조회 (Service 내부 전용)
+     * - 조회 전용 트랜잭션
+     * - Controller에서는 사용하지 않음
+     * - 비즈니스 로직(상태 변경, 소유자 검증 등)에서 사용
+     * - 존재하지 않으면 예외
+     */
+    @Transactional(readOnly = true)
+    protected Store getStoreEntity(Long storeId) {
         return storeRepository.findById(storeId)
                 .orElseThrow(() -> new IllegalArgumentException("스토어가 존재하지 않습니다"));
     }
-
 
     /**
      * 활성화된 스토어 목록 조회
@@ -61,7 +75,7 @@ public class StoreService {
      * - 실제 DB 삭제 없이 status 값만 변경하는 Soft Delete 구조
      */
     public void changeStatusByOwner(Long storeId, Long ownerId, StoreStatus newStatus) {
-        Store store = getStore(storeId);
+        Store store = getStoreEntity(storeId);
 
         // 본인 스토어 검증
         if (!store.getOwnerId().equals(ownerId)) {
@@ -83,7 +97,7 @@ public class StoreService {
      * - 모든 상태 변경 가능 (ACTIVE / INACTIVE / SUSPENDED / DELETED)
      */
     public void changeStatusByAdmin(Long storeId, StoreStatus newStatus) {
-        Store store = getStore(storeId);
+        Store store = getStoreEntity(storeId);
         store.changeStatus(newStatus);
     }
 }

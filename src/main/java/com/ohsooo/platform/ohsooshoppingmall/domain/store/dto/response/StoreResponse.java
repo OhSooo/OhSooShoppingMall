@@ -52,16 +52,4 @@ public class StoreResponse {
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
-
-    public static StoreResponse from(Store store) {
-        return new StoreResponse(
-                store.getStoreId(),
-                store.getOwnerId(),
-                store.getName(),
-                store.getDescription(),
-                store.getStatus(),
-                store.getCreatedAt(),
-                store.getUpdatedAt()
-        );
-    }
 }
