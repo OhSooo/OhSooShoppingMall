@@ -1,6 +1,7 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.store.dto.response;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.Store;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.StoreStatus;
@@ -29,10 +30,10 @@ public class StoreResponse {
     private final StoreStatus status;
 
     @Schema(description = "생성 시각")
-    private final LocalDateTime createdAt;
+    private final OffsetDateTime createdAt;
 
     @Schema(description = "마지막 수정 시각")
-    private final LocalDateTime updatedAt;
+    private final OffsetDateTime updatedAt;
 
     private StoreResponse(
             Long storeId,
@@ -40,8 +41,8 @@ public class StoreResponse {
             String name,
             String description,
             StoreStatus status,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
+            OffsetDateTime createdAt,
+            OffsetDateTime updatedAt
     ) {
         this.storeId = storeId;
         this.ownerId = ownerId;
