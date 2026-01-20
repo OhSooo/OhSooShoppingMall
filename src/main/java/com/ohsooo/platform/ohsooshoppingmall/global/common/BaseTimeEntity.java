@@ -3,7 +3,6 @@ package com.ohsooo.platform.ohsooshoppingmall.global.common;
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import lombok.Getter;
 import org.springframework.data.annotation.CreatedDate;
@@ -29,4 +28,8 @@ public abstract class BaseTimeEntity {
   @Column(name = "deleted_at")
   private OffsetDateTime deletedAt;
 
+  protected void markDeleted(OffsetDateTime deletedAt) {
+    this.isDeleted = true;
+    this.deletedAt = deletedAt;
+  }
 }
