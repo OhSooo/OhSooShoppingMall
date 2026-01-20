@@ -2,6 +2,7 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.dto.response;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.entity.Gender;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.entity.Role;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -17,7 +18,7 @@ public class UserMeResponseDto {
 
   private Long userId;
   private String name;
-  private OffsetDateTime birth;
+  private LocalDate birth;
   private Gender gender;
   private String phone;
   private String address;

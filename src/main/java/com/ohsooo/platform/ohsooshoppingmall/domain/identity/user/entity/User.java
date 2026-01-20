@@ -2,6 +2,7 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.entity;
 
 import com.ohsooo.platform.ohsooshoppingmall.global.common.BaseTimeEntity;
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -22,7 +23,7 @@ public class User extends BaseTimeEntity {
   private String name;
 
   @Column(name = "birth")
-  private OffsetDateTime birth;
+  private LocalDate birth;
 
   @Enumerated(EnumType.STRING)
   @Column(name = "gender")
@@ -43,7 +44,7 @@ public class User extends BaseTimeEntity {
    * - PATCH 성격이라 null 값은 무시
    */
   public void updateProfile(String name,
-      OffsetDateTime birth,
+      LocalDate birth,
       Gender gender,
       String phone,
       String address) {

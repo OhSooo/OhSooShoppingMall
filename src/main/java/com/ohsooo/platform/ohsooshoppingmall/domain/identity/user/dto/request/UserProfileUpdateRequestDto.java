@@ -3,7 +3,7 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.dto.request;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.entity.Gender;
 import jakarta.validation.constraints.Size;
-import java.time.OffsetDateTime;
+import java.time.LocalDate;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -14,7 +14,7 @@ public class UserProfileUpdateRequestDto {
   @Size(max = 255)
   private String name;
 
-  private OffsetDateTime birth;
+  private LocalDate birth;
 
   private Gender gender;
 
