@@ -1,48 +1,57 @@
 package com.ohsooo.platform.ohsooshoppingmall.global.config;
 
+import com.ohsooo.platform.ohsooshoppingmall.global.jwt.JwtAuthenticationFilter;
+import com.ohsooo.platform.ohsooshoppingmall.global.jwt.JwtProvider;
 import com.ohsooo.platform.ohsooshoppingmall.global.oAuth.OAuth2SuccessHandler;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
-import lombok.RequiredArgsConstructor;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
 
   private final OAuth2SuccessHandler oAuth2SuccessHandler;
+  private final JwtProvider jwtProvider;
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(csrf -> csrf.disable())
-            .cors(Customizer.withDefaults())
-            .authorizeHttpRequests(auth -> auth
+  @Bean
+  public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-                // swagger / openapi
-                .requestMatchers(
-                    "/v3/api-docs/**",
-                    "/swagger-ui/**",
-                    "/swagger-ui.html"
-                ).permitAll()
+    JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtProvider);
 
-                // oauth2 관련
-                .requestMatchers(
-                    "/", "/oauth2/**", "/login/**"
-                ).permitAll()
+    http
+        .csrf(csrf -> csrf.disable())
+        .cors(Customizer.withDefaults())
 
-                // 테스트용
-                .requestMatchers("/me").authenticated()
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 
-                .anyRequest().permitAll()
-            )
-            .formLogin(form -> form.disable())
-            .oauth2Login(oauth2 ->
-                oauth2.successHandler(oAuth2SuccessHandler)
-            );
+        .authorizeHttpRequests(auth -> auth
 
-        return http.build();
-    }
+            // swagger / openapi
+            .requestMatchers(
+                "/v3/api-docs/**",
+                "/swagger-ui/**",
+                "/swagger-ui.html"
+            ).permitAll()
+
+            // oauth2 관련
+            .requestMatchers(
+                "/", "/oauth2/**", "/login/**"
+            ).permitAll()
+
+            .requestMatchers("/me").authenticated()
+            .requestMatchers("/users/me").authenticated()
+            .requestMatchers("/users/me/**").authenticated()
+
+            .anyRequest().permitAll()
+        )
+        .formLogin(form -> form.disable())
+        .oauth2Login(oauth2 -> oauth2.successHandler(oAuth2SuccessHandler));
+
+    return http.build();
+  }
 }

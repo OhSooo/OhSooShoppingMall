@@ -107,8 +107,6 @@ public class AuthService {
 
   /**
    * AccessToken에 넣을 claims 생성
-   * - 최소: role
-   * - 필요하면: provider, onboarded 등 확장 가능
    */
   @Transactional(readOnly = true)
   public Map<String, Object> buildAccessClaims(Long userId) {
@@ -119,6 +117,16 @@ public class AuthService {
     claims.put("role", user.getRole().name());
     return claims;
   }
+
+
+  @Transactional(readOnly = true)
+  public Map<String, Object> buildAccessClaims(Long userId, AuthProvider provider) {
+    Map<String, Object> claims = buildAccessClaims(userId);
+    claims.put("provider", provider.name());
+    return claims;
+  }
+
+
 
   /**
    * 비밀번호 재발급(임시 비밀번호 발송)
@@ -203,4 +211,5 @@ public class AuthService {
     }
     return sb.toString();
   }
+
 }
