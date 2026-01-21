@@ -179,7 +179,7 @@ public class AuthService {
     }
 
     AuthIdentity auth = authIdentityRepository
-        .findByUser_IdAndProvider(userId, AuthProvider.LOCAL)
+        .findByUser_UserIdAndProvider(userId, AuthProvider.LOCAL)
         .orElseThrow(() -> new BusinessException(AuthErrorCode.AUTH_IDENTITY_NOT_FOUND));
 
     String hash = auth.getPasswordHash();

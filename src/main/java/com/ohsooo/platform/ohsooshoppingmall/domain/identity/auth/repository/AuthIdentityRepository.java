@@ -9,7 +9,7 @@ public interface AuthIdentityRepository extends JpaRepository<AuthIdentity, Long
 
   Optional<AuthIdentity> findByProviderAndProviderUserId(AuthProvider provider, String providerUserId);
 
-  Optional<AuthIdentity> findByUser_IdAndProvider(Long userId, AuthProvider provider);
+  Optional<AuthIdentity> findByUser_UserIdAndProvider(Long userId, AuthProvider provider);
 
   Optional<AuthIdentity> findByProviderAndEmail(AuthProvider provider, String email);
 

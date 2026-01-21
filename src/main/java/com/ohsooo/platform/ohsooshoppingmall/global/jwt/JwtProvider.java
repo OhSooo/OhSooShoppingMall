@@ -1,8 +1,8 @@
 package com.ohsooo.platform.ohsooshoppingmall.global.jwt;
 
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.time.Instant;
 import java.util.Date;
@@ -17,7 +17,9 @@ public class JwtProvider {
 
   public JwtProvider(JwtProperties props) {
     this.props = props;
-    this.key = Keys.hmacShaKeyFor(props.getSecret().getBytes(StandardCharsets.UTF_8));
+
+    byte[] keyBytes = Decoders.BASE64.decode(props.getSecret());
+    this.key = Keys.hmacShaKeyFor(keyBytes);
   }
 
   /* AccessToken 생성 */
