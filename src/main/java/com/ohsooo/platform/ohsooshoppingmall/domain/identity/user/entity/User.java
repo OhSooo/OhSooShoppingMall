@@ -63,4 +63,18 @@ public class User extends BaseTimeEntity {
     if (Boolean.TRUE.equals(getIsDeleted())) return;
     markDeleted(deletedAt);
   }
+
+  public static User createForLocalSignup(String name) {
+    User u = new User();
+    u.name = name;
+    u.role = Role.GENERAL;
+    return u;
+  }
+
+  public static User createForSocialOnboarding() {
+    User u = new User();
+    u.role = Role.GENERAL;
+    return u;
+  }
+
 }

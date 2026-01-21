@@ -1,0 +1,15 @@
+package com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.dto.request;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
+public class EmailVerificationSendRequestDto {
+
+  @Email
+  @NotBlank
+  private String email;
+}
