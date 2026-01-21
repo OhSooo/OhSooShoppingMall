@@ -2,7 +2,12 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.controller;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.dto.request.LocalLoginRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.dto.request.LocalSignupRequestDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.dto.request.PasswordChangeRequestDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.dto.request.PasswordResetRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.dto.response.AccessTokenResponseDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.dto.response.PasswordChangeResponseDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.dto.response.PasswordResetResponseDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.mapper.AuthMapper;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.service.AuthService;
 import com.ohsooo.platform.ohsooshoppingmall.global.jwt.JwtProvider;
 import com.ohsooo.platform.ohsooshoppingmall.global.jwt.RefreshTokenCookieHelper;
@@ -12,10 +17,12 @@ import com.ohsooo.platform.ohsooshoppingmall.global.jwt.mapper.TokenMapper;
 import com.ohsooo.platform.ohsooshoppingmall.global.response.BaseResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import java.time.OffsetDateTime;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,6 +38,8 @@ public class AuthController {
   private final RefreshTokenCookieHelper refreshCookieHelper;
 
   private final TokenMapper tokenMapper;
+
+  private final AuthMapper authMapper;
 
   /**
    * 로컬 회원가입
@@ -117,5 +126,46 @@ public class AuthController {
     return ResponseEntity.ok()
         .header(HttpHeaders.SET_COOKIE, refreshCookieHelper.clearRefreshCookie().toString())
         .body(BaseResponse.success("로그아웃 완료", null));
+  }
+
+  /**
+   * 비밀번호 재발급(임시 비밀번호 발송)
+   * - 대상: 로컬 로그인 사용자(LOCAL)
+   * - 동작:
+   *   1) auth_identities(LOCAL, email) 조회
+   *   2) 임시 비밀번호 생성 및 password_hash 교체
+   *   3) 이메일 발송
+   *
+   * - 보안(현업 권장):
+   *   * email 존재 여부를 응답에서 구분하지 않도록 처리 가능(계정 추측 방지)
+   */
+  @PostMapping("/password/reset")
+  public ResponseEntity<BaseResponse<PasswordResetResponseDto>> resetPassword(
+      @Valid @RequestBody PasswordResetRequestDto request
+  ) {
+    authService.sendTemporaryPassword(request.getEmail());
+    PasswordResetResponseDto body = authMapper.toPasswordResetResponseDto(request.getEmail());
+
+    return ResponseEntity.ok(BaseResponse.success("임시 비밀번호 발급 요청이 접수되었습니다.", body));
+  }
+
+  /**
+   * 비밀번호 변경(마이페이지)
+   * - 인증: AccessToken 필요(@AuthenticationPrincipal userId)
+   * - 대상: 로컬 로그인 사용자(LOCAL)
+   * - 동작:
+   *   1) 현재 비밀번호 검증
+   *   2) 새 비밀번호/확인 일치 검증
+   *   3) password_hash 갱신
+   */
+  @PatchMapping("/password")
+  public ResponseEntity<BaseResponse<PasswordChangeResponseDto>> changePassword(
+      @AuthenticationPrincipal Long userId,
+      @Valid @RequestBody PasswordChangeRequestDto request
+  ) {
+    OffsetDateTime changedAt = authService.changePassword(userId, request);
+    PasswordChangeResponseDto body = authMapper.toPasswordChangeResponseDto(changedAt);
+
+    return ResponseEntity.ok(BaseResponse.success("비밀번호 변경 완료", body));
   }
 }
