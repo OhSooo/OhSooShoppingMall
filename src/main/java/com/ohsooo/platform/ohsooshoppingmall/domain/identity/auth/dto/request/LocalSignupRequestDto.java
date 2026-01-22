@@ -1,15 +1,15 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.dto.request;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.entity.Gender;
+import jakarta.validation.constraints.*;
+import java.time.LocalDate;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 로컬 회원가입
- * - email/password는 AuthIdentity에 들어감
- * - name은 User에 들어갈 가능성이 높아서 일단 포함
+ * 로컬 회원가입 요청 DTO
+ * - 이메일 인증 완료된 사용자만 가능
+ * - User + AuthIdentity 생성에 필요한 모든 정보 포함
  */
 @Getter
 @NoArgsConstructor
@@ -24,5 +24,20 @@ public class LocalSignupRequestDto {
   private String password;
 
   @NotBlank
+  @Size(max = 255)
   private String name;
+
+  @NotNull
+  private LocalDate birth;
+
+  @NotNull
+  private Gender gender;
+
+  @NotBlank
+  @Size(max = 50)
+  private String phone;
+
+  @NotBlank
+  @Size(max = 255)
+  private String address;
 }

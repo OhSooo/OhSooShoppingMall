@@ -34,14 +34,16 @@ public class AuthService {
 
   /**
    * 로컬 회원가입
-   * - 이메일 인증(verified) 여부 확인
-   * - users 생성
+   * - 이메일 인증 여부 확인
+   * - users 생성 (모든 필드 포함)
    * - auth_identities(LOCAL) 생성
-   * - verified 상태는 1회용이므로 삭제
-   * @return userId
+   * - 이메일 인증 verified 상태 제거 (1회용)
+   *
+   * @return 생성된 AuthIdentity
    */
   @Transactional
-  public Long signupLocal(LocalSignupRequestDto request) {
+  public AuthIdentity signupLocal(LocalSignupRequestDto request) {
+
     if (!emailVerificationCodeStore.isSignupVerified(request.getEmail())) {
       throw new BusinessException(AuthErrorCode.EMAIL_NOT_VERIFIED);
     }
@@ -49,7 +51,13 @@ public class AuthService {
     authIdentityRepository.findByProviderAndEmail(AuthProvider.LOCAL, request.getEmail())
         .ifPresent(x -> { throw new BusinessException(AuthErrorCode.EMAIL_ALREADY_EXISTS); });
 
-    User user = User.createForLocalSignup(request.getName());
+    User user = User.createForLocalSignup(
+        request.getName(),
+        request.getBirth(),
+        request.getGender(),
+        request.getPhone(),
+        request.getAddress()
+    );
     User savedUser = userRepository.save(user);
 
     String passwordHash = passwordEncoder.encode(request.getPassword());
@@ -58,8 +66,10 @@ public class AuthService {
 
     emailVerificationCodeStore.clearSignupVerified(request.getEmail());
 
-    return savedUser.getUserId();
+    return auth;
   }
+
+
 
   /**
    * 로컬 로그인

@@ -8,10 +8,10 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "users")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseTimeEntity {
 
   @Id
@@ -19,35 +19,59 @@ public class User extends BaseTimeEntity {
   @Column(name = "user_id")
   private Long userId;
 
-  @Column(name = "name", length = 255)
+  @Column(name = "name", length = 255, nullable = false)
   private String name;
 
-  @Column(name = "birth")
+  @Column(name = "birth", nullable = false)
   private LocalDate birth;
 
   @Enumerated(EnumType.STRING)
-  @Column(name = "gender")
+  @Column(name = "gender", nullable = false)
   private Gender gender;
 
-  @Column(name = "phone", length = 50)
+  @Column(name = "phone", length = 50, nullable = false)
   private String phone;
 
-  @Column(name = "address", length = 255)
+  @Column(name = "address", length = 255, nullable = false)
   private String address;
 
   @Enumerated(EnumType.STRING)
   @Column(name = "role", nullable = false, length = 20)
   private Role role;
 
-  /**
-   * 프로필(온보딩/마이페이지) 수정
-   * - PATCH 성격이라 null 값은 무시
-   */
-  public void updateProfile(String name,
+  /** 로컬 회원가입용 생성자 */
+  public static User createForLocalSignup(
+      String name,
       LocalDate birth,
       Gender gender,
       String phone,
-      String address) {
+      String address
+  ) {
+    User u = new User();
+    u.name = name;
+    u.birth = birth;
+    u.gender = gender;
+    u.phone = phone;
+    u.address = address;
+    u.role = Role.GENERAL;
+    return u;
+  }
+
+  /** 소셜 회원가입 (온보딩 전) */
+  public static User createForSocialOnboarding() {
+    User u = new User();
+    u.role = Role.GENERAL;
+    return u;
+  }
+
+  /** 프로필 수정 (PATCH) */
+  public void updateProfile(
+      String name,
+      LocalDate birth,
+      Gender gender,
+      String phone,
+      String address
+  ) {
     if (name != null) this.name = name;
     if (birth != null) this.birth = birth;
     if (gender != null) this.gender = gender;
@@ -55,26 +79,8 @@ public class User extends BaseTimeEntity {
     if (address != null) this.address = address;
   }
 
-  /**
-   * 회원 탈퇴(soft delete)
-   * - 이미 삭제된 경우 중복 호출은 무시(원하면 예외로 바꿔도 됨)
-   */
   public void softDelete(OffsetDateTime deletedAt) {
     if (Boolean.TRUE.equals(getIsDeleted())) return;
     markDeleted(deletedAt);
   }
-
-  public static User createForLocalSignup(String name) {
-    User u = new User();
-    u.name = name;
-    u.role = Role.GENERAL;
-    return u;
-  }
-
-  public static User createForSocialOnboarding() {
-    User u = new User();
-    u.role = Role.GENERAL;
-    return u;
-  }
-
 }

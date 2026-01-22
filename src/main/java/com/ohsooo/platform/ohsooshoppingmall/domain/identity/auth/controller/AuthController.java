@@ -9,11 +9,14 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.dto.request.Pa
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.dto.response.AccessTokenResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.dto.response.EmailVerificationResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.dto.response.EmailVerificationSendResponseDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.dto.response.LocalSignupResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.dto.response.PasswordChangeResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.dto.response.PasswordResetResponseDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.entity.AuthIdentity;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.mapper.AuthMapper;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.service.AuthService;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.service.EmailVerificationService;
+import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.entity.User;
 import com.ohsooo.platform.ohsooshoppingmall.global.jwt.JwtProvider;
 import com.ohsooo.platform.ohsooshoppingmall.global.jwt.RefreshTokenCookieHelper;
 import com.ohsooo.platform.ohsooshoppingmall.global.jwt.TokenResponse;
@@ -49,28 +52,22 @@ public class AuthController {
 
   private final AuthMapper authMapper;
 
-  /**
-   * 로컬 회원가입
-   * - refresh: HttpOnly 쿠키
-   * - access: JSON body
-   */
   @Operation(
       summary = "로컬 회원가입",
       description = "이메일 인증이 완료된 사용자의 로컬 회원가입을 처리합니다."
   )
   @PostMapping("/signup/local")
-  public ResponseEntity<BaseResponse<AccessTokenResponseDto>> signupLocal(
+  public ResponseEntity<BaseResponse<LocalSignupResponseDto>> signupLocal(
       @Valid @RequestBody LocalSignupRequestDto request
   ) {
-    Long userId = authService.signupLocal(request);
+    AuthIdentity auth = authService.signupLocal(request);
+    LocalSignupResponseDto body = authMapper.toLocalSignupResponseDto(auth);
 
-    Map<String, Object> accessClaims = authService.buildAccessClaims(userId);
-    TokenResponse tokens = tokenService.issueTokens(userId, accessClaims);
-
-    return ResponseEntity.ok()
-        .header(HttpHeaders.SET_COOKIE, refreshCookieHelper.buildRefreshCookie(tokens.getRefreshToken()).toString())
-        .body(BaseResponse.success("회원가입 성공", tokenMapper.toAccessTokenResponseDto(tokens)));
+    return ResponseEntity.ok(
+        BaseResponse.success("회원가입이 완료되었습니다.", body)
+    );
   }
+
 
   /**
    * 로컬 로그인

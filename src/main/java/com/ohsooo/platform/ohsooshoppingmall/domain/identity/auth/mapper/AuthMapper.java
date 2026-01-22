@@ -30,11 +30,7 @@ public class AuthMapper {
    * 로컬 회원가입 응답 DTO 변환
    */
   public LocalSignupResponseDto toLocalSignupResponseDto(AuthIdentity entity) {
-    return new LocalSignupResponseDto(
-        entity.getUser().getUserId(),
-        entity.getId(),
-        entity.getEmail()
-    );
+    return new LocalSignupResponseDto(entity.getUser().getName());
   }
 
   /**
