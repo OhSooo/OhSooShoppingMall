@@ -12,22 +12,35 @@ public class EmailVerificationCodeStore {
 
   private final StringRedisTemplate redis;
 
-  private static final String KEY_PREFIX = "email_verify:";
-
-  public void save(String email, String code, Duration ttl) {
-    redis.opsForValue().set(KEY_PREFIX + email, code, ttl);
+  public void saveSignupCode(String email, String code, Duration ttl) {
+    redis.opsForValue().set(signupCodeKey(email), code, ttl);
   }
 
-  public Optional<String> find(String email) {
-    return Optional.ofNullable(redis.opsForValue().get(KEY_PREFIX + email));
+  public Optional<String> findSignupCode(String email) {
+    return Optional.ofNullable(redis.opsForValue().get(signupCodeKey(email)));
   }
 
-  public void delete(String email) {
-    redis.delete(KEY_PREFIX + email);
+  public void deleteSignupCode(String email) {
+    redis.delete(signupCodeKey(email));
   }
 
-  public boolean verify(String email, String code) {
-    String saved = redis.opsForValue().get(KEY_PREFIX + email);
-    return saved != null && saved.equals(code);
+  public void markSignupVerified(String email, Duration ttl) {
+    redis.opsForValue().set(signupVerifiedKey(email), "true", ttl);
+  }
+
+  public boolean isSignupVerified(String email) {
+    return "true".equals(redis.opsForValue().get(signupVerifiedKey(email)));
+  }
+
+  public void clearSignupVerified(String email) {
+    redis.delete(signupVerifiedKey(email));
+  }
+
+  private String signupCodeKey(String email) {
+    return "email:signup:code:" + email;
+  }
+
+  private String signupVerifiedKey(String email) {
+    return "email:signup:verified:" + email;
   }
 }

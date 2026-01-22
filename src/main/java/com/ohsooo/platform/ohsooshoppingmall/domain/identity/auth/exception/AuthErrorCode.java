@@ -17,7 +17,11 @@ public enum AuthErrorCode implements BaseErrorCode {
 
   PASSWORD_MISMATCH(HttpStatus.UNAUTHORIZED, "AUTH_4012", "현재 비밀번호가 올바르지 않습니다."),
   NEW_PASSWORD_CONFIRM_MISMATCH(HttpStatus.BAD_REQUEST, "AUTH_4001", "새 비밀번호 확인이 일치하지 않습니다."),
-  SOCIAL_PASSWORD_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "AUTH_4002", "소셜 계정은 비밀번호를 변경할 수 없습니다.");
+  SOCIAL_PASSWORD_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "AUTH_4002", "소셜 계정은 비밀번호를 변경할 수 없습니다."),
+
+  EMAIL_VERIFICATION_CODE_EXPIRED(HttpStatus.BAD_REQUEST, "AUTH_4003", "인증번호가 만료되었습니다."),
+  EMAIL_VERIFICATION_CODE_MISMATCH(HttpStatus.BAD_REQUEST, "AUTH_4004", "인증번호가 올바르지 않습니다."),
+  EMAIL_NOT_VERIFIED(HttpStatus.BAD_REQUEST, "AUTH_4005", "이메일 인증이 필요합니다.");
 
 
   private final HttpStatus status;

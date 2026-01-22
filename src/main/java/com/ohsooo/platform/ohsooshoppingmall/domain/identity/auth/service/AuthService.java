@@ -30,14 +30,22 @@ public class AuthService {
 
   private final EmailSender emailSender;
 
+  private final EmailVerificationCodeStore emailVerificationCodeStore;
+
   /**
    * 로컬 회원가입
+   * - 이메일 인증(verified) 여부 확인
    * - users 생성
    * - auth_identities(LOCAL) 생성
+   * - verified 상태는 1회용이므로 삭제
    * @return userId
    */
   @Transactional
   public Long signupLocal(LocalSignupRequestDto request) {
+    if (!emailVerificationCodeStore.isSignupVerified(request.getEmail())) {
+      throw new BusinessException(AuthErrorCode.EMAIL_NOT_VERIFIED);
+    }
+
     authIdentityRepository.findByProviderAndEmail(AuthProvider.LOCAL, request.getEmail())
         .ifPresent(x -> { throw new BusinessException(AuthErrorCode.EMAIL_ALREADY_EXISTS); });
 
@@ -47,6 +55,8 @@ public class AuthService {
     String passwordHash = passwordEncoder.encode(request.getPassword());
     AuthIdentity auth = AuthIdentity.ofLocal(savedUser, passwordHash, request.getEmail());
     authIdentityRepository.save(auth);
+
+    emailVerificationCodeStore.clearSignupVerified(request.getEmail());
 
     return savedUser.getUserId();
   }
@@ -118,15 +128,12 @@ public class AuthService {
     return claims;
   }
 
-
   @Transactional(readOnly = true)
   public Map<String, Object> buildAccessClaims(Long userId, AuthProvider provider) {
     Map<String, Object> claims = buildAccessClaims(userId);
     claims.put("provider", provider.name());
     return claims;
   }
-
-
 
   /**
    * 비밀번호 재발급(임시 비밀번호 발송)
@@ -136,21 +143,14 @@ public class AuthService {
    *   2) 임시 비밀번호 생성
    *   3) password_hash를 임시 비밀번호 해시로 교체
    *   4) 이메일로 임시 비밀번호 발송
-   *
-   * - 보안(현업 권장):
-   *   * email 존재 여부를 응답으로 구분하지 않도록(계정 추측 방지),
-   *     "없으면 그냥 return" 처리로 바꿔도 됨.
    */
   @Transactional
   public void sendTemporaryPassword(String email) {
     AuthIdentity auth = authIdentityRepository
         .findByProviderAndEmail(AuthProvider.LOCAL, email)
         .orElseThrow(() -> new BusinessException(AuthErrorCode.AUTH_IDENTITY_NOT_FOUND));
-    // ✅ 현업식으로 숨기려면:
-    // .orElse(null)로 받고 null이면 return;
 
     if (auth.getPasswordHash() == null) {
-      // LOCAL이 아닌데 email이 들어있을 수도 있으니 방어
       throw new BusinessException(AuthErrorCode.SOCIAL_PASSWORD_NOT_SUPPORTED);
     }
 
@@ -170,7 +170,7 @@ public class AuthService {
    *   3) 현재 비밀번호 검증
    *   4) password_hash 갱신
    *
-   * @return 변경 시각(응답 DTO에 담기 좋음)
+   * @return 변경 시각
    */
   @Transactional
   public OffsetDateTime changePassword(Long userId, PasswordChangeRequestDto request) {
@@ -211,5 +211,4 @@ public class AuthService {
     }
     return sb.toString();
   }
-
 }
