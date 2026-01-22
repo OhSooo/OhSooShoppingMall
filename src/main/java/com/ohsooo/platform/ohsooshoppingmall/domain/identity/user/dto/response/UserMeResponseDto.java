@@ -24,6 +24,5 @@ public class UserMeResponseDto {
   private String address;
   private Role role;
 
-  private OffsetDateTime createdAt;
-  private OffsetDateTime updatedAt;
+  private boolean onboarded;
 }

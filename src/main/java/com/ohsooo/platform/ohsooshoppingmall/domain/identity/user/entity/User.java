@@ -19,27 +19,31 @@ public class User extends BaseTimeEntity {
   @Column(name = "user_id")
   private Long userId;
 
-  @Column(name = "name", length = 255, nullable = false)
+  // 온보딩 전엔 비어있을 수 있음
+  @Column(name = "name", length = 255, nullable = true)
   private String name;
 
-  @Column(name = "birth", nullable = false)
+  @Column(name = "birth", nullable = true)
   private LocalDate birth;
 
   @Enumerated(EnumType.STRING)
-  @Column(name = "gender", nullable = false)
+  @Column(name = "gender", nullable = true)
   private Gender gender;
 
-  @Column(name = "phone", length = 50, nullable = false)
+  @Column(name = "phone", length = 50, nullable = true)
   private String phone;
 
-  @Column(name = "address", length = 255, nullable = false)
+  @Column(name = "address", length = 255, nullable = true)
   private String address;
 
   @Enumerated(EnumType.STRING)
   @Column(name = "role", nullable = false, length = 20)
   private Role role;
 
-  /** 로컬 회원가입용 생성자 */
+  @Column(name = "onboarded", nullable = false)
+  private boolean onboarded;
+
+  /** 로컬 회원가입용 생성자 (온보딩 완료 상태로 생성) */
   public static User createForLocalSignup(
       String name,
       LocalDate birth,
@@ -54,6 +58,7 @@ public class User extends BaseTimeEntity {
     u.phone = phone;
     u.address = address;
     u.role = Role.GENERAL;
+    u.onboarded = true;
     return u;
   }
 
@@ -61,6 +66,7 @@ public class User extends BaseTimeEntity {
   public static User createForSocialOnboarding() {
     User u = new User();
     u.role = Role.GENERAL;
+    u.onboarded = false;
     return u;
   }
 
@@ -77,6 +83,16 @@ public class User extends BaseTimeEntity {
     if (gender != null) this.gender = gender;
     if (phone != null) this.phone = phone;
     if (address != null) this.address = address;
+
+    // onboarded 여부 판단
+    if (this.name != null && this.birth != null && this.gender != null
+        && this.phone != null && this.address != null) {
+      this.onboarded = true;
+    }
+  }
+
+  public void markOnboarded() {
+    this.onboarded = true;
   }
 
   public void softDelete(OffsetDateTime deletedAt) {

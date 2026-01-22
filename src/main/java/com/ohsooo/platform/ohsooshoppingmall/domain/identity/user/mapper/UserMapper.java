@@ -16,8 +16,7 @@ public class UserMapper {
         .phone(user.getPhone())
         .address(user.getAddress())
         .role(user.getRole())
-        .createdAt(user.getCreatedAt())
-        .updatedAt(user.getUpdatedAt())
+        .onboarded(user.isOnboarded())
         .build();
   }
 }

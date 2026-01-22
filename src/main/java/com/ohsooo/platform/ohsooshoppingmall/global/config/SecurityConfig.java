@@ -38,13 +38,15 @@ public class SecurityConfig {
                 "/swagger-ui.html"
             ).permitAll()
 
-            // oauth2 관련
+            // auth / oauth
             .requestMatchers(
-                "/", "/oauth2/**", "/login/**"
+                "/",
+                "/auth/**",
+                "/oauth2/**",
+                "/login/**"
             ).permitAll()
 
-            .requestMatchers("/me").authenticated()
-            .requestMatchers("/users/me").authenticated()
+            // user
             .requestMatchers("/users/me/**").authenticated()
 
             .anyRequest().permitAll()
