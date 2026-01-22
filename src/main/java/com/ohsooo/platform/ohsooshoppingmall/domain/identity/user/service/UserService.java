@@ -1,5 +1,6 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.service;
 
+import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.repository.AuthIdentityRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.dto.request.UserProfileUpdateRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.dto.response.UserMeResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.entity.User;
@@ -19,6 +20,7 @@ public class UserService {
 
   private final UserRepository userRepository;
   private final UserMapper userMapper;
+  private final AuthIdentityRepository authIdentityRepository;
 
   public UserMeResponseDto getMe(Long userId) {
     validateAuthPrincipal(userId);
@@ -57,7 +59,11 @@ public class UserService {
       throw new BusinessException(UserErrorCode.USER_DELETED);
     }
 
-    user.softDelete(OffsetDateTime.now());
+    OffsetDateTime now = OffsetDateTime.now();
+    user.softDelete(now);
+
+    authIdentityRepository.findAllByUser_UserId(userId)
+        .forEach(ai -> ai.softDelete(now));   // AuthIdentity에 softDelete 추가했을 때
   }
 
 

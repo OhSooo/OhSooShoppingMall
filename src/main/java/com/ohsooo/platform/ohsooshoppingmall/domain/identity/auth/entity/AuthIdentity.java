@@ -3,6 +3,7 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.entity;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.entity.User;
 import com.ohsooo.platform.ohsooshoppingmall.global.common.BaseTimeEntity;
 import jakarta.persistence.*;
+import java.time.OffsetDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -64,4 +65,14 @@ public class AuthIdentity extends BaseTimeEntity {
   public void updateEmail(String email) {
     this.email = email;
   }
+
+  public void softDelete(OffsetDateTime deletedAt) {
+    if (Boolean.TRUE.equals(getIsDeleted())) return;
+    markDeleted(deletedAt);
+  }
+
+  public void restore() {
+    markRestored();
+  }
+
 }

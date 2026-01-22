@@ -32,4 +32,10 @@ public abstract class BaseTimeEntity {
     this.isDeleted = true;
     this.deletedAt = deletedAt;
   }
+
+  protected void markRestored() {
+    this.isDeleted = false;
+    this.deletedAt = null;
+  }
+
 }

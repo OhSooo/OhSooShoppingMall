@@ -99,4 +99,9 @@ public class User extends BaseTimeEntity {
     if (Boolean.TRUE.equals(getIsDeleted())) return;
     markDeleted(deletedAt);
   }
+
+  public void restore() {
+    markRestored();
+  }
+
 }

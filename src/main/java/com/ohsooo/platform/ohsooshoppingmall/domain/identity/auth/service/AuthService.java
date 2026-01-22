@@ -48,26 +48,62 @@ public class AuthService {
       throw new BusinessException(AuthErrorCode.EMAIL_NOT_VERIFIED);
     }
 
-    authIdentityRepository.findByProviderAndEmail(AuthProvider.LOCAL, request.getEmail())
-        .ifPresent(x -> { throw new BusinessException(AuthErrorCode.EMAIL_ALREADY_EXISTS); });
+    AuthIdentity result = authIdentityRepository
+        .findByProviderAndEmail(AuthProvider.LOCAL, request.getEmail())
+        .map(existing -> {
+          User user = existing.getUser();
 
-    User user = User.createForLocalSignup(
-        request.getName(),
-        request.getBirth(),
-        request.getGender(),
-        request.getPhone(),
-        request.getAddress()
-    );
-    User savedUser = userRepository.save(user);
+          // 이미 활성 계정이면 중복
+          if (!Boolean.TRUE.equals(user.getIsDeleted())) {
+            throw new BusinessException(AuthErrorCode.EMAIL_ALREADY_EXISTS);
+          }
 
-    String passwordHash = passwordEncoder.encode(request.getPassword());
-    AuthIdentity auth = AuthIdentity.ofLocal(savedUser, passwordHash, request.getEmail());
-    authIdentityRepository.save(auth);
+          // 탈퇴 계정이면 "복구"
+          user.restore(); // is_deleted=false, deleted_at=null
+          user.updateProfile(
+              request.getName(),
+              request.getBirth(),
+              request.getGender(),
+              request.getPhone(),
+              request.getAddress()
+          );
+          user.markOnboarded();
+
+          // auth_identity도 soft delete 상태일 수 있으니 복구 (선택)
+          if (Boolean.TRUE.equals(existing.getIsDeleted())) {
+            existing.restore();
+          }
+
+          // 비밀번호/이메일 업데이트
+          existing.changePasswordHash(passwordEncoder.encode(request.getPassword()));
+          existing.updateEmail(request.getEmail());
+
+          return existing;
+        })
+        .orElseGet(() -> {
+          // 신규 생성
+          User user = User.createForLocalSignup(
+              request.getName(),
+              request.getBirth(),
+              request.getGender(),
+              request.getPhone(),
+              request.getAddress()
+          );
+          User savedUser = userRepository.save(user);
+
+          AuthIdentity auth = AuthIdentity.ofLocal(
+              savedUser,
+              passwordEncoder.encode(request.getPassword()),
+              request.getEmail()
+          );
+          return authIdentityRepository.save(auth);
+        });
 
     emailVerificationCodeStore.clearSignupVerified(request.getEmail());
 
-    return auth;
+    return result;
   }
+
 
 
 
