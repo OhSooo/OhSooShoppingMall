@@ -25,7 +25,7 @@ public class Option {
   @Column(nullable = false, length = 20)
   private OptionType type;
 
-  @Column(nullable = false, length = 50)
+  @Column(nullable = false, length = 100)
   private String value;
 
   public Option(Item item, OptionType type, String value) {
