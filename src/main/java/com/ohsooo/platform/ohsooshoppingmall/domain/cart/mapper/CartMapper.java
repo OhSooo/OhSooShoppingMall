@@ -1,5 +1,6 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.cart.mapper;
 
+import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.response.CartItemOptionResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.response.CartItemResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.response.CartResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.entity.Cart;
@@ -21,10 +22,14 @@ public class CartMapper {
   public CartResponseDto toCartResponseDto(Cart cart) {
     if (cart == null) return null;
 
+    List<CartItemResponseDto> items = toCartItemResponseDtoList(cart.getCartItems());
+    int totalPrice = calculateTotalPrice(items);
+
     return new CartResponseDto(
         cart.getCartId(),
         cart.getUser().getUserId(),
-        toCartItemResponseDtoList(cart.getCartItems())
+        totalPrice,
+        items
     );
   }
 
@@ -34,17 +39,11 @@ public class CartMapper {
     ItemVariant variant = cartItem.getItemVariant();
     Item item = variant.getItem();
 
-    // 옵션 문자열 조합
-    List<String> options = variant.getItemVariantOptions() == null
-        ? Collections.emptyList()
-        : variant.getItemVariantOptions().stream()
-            .map(ItemVariantOption::getOption)
-            .map(this::formatOption)
-            .collect(Collectors.toList());
+    List<CartItemOptionResponseDto> options = toOptionDtos(variant.getItemVariantOptions());
 
     boolean saleable =
-        item.getStatus() == ItemStatus.ACTIVE &&
-            variant.getStatus() == ItemVariantStatus.ACTIVE;
+        item.getStatus() == ItemStatus.ACTIVE
+            && variant.getStatus() == ItemVariantStatus.ACTIVE;
 
     return new CartItemResponseDto(
         cartItem.getCartItemId(),
@@ -65,7 +64,30 @@ public class CartMapper {
         .collect(Collectors.toList());
   }
 
-  private String formatOption(Option option) {
-    return option.getType().name() + ": " + option.getValue();
+  private List<CartItemOptionResponseDto> toOptionDtos(List<ItemVariantOption> itemVariantOptions) {
+    if (itemVariantOptions == null || itemVariantOptions.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    return itemVariantOptions.stream()
+        .map(ItemVariantOption::getOption)
+        .map(this::toOptionDto)
+        .collect(Collectors.toList());
+  }
+
+  private CartItemOptionResponseDto toOptionDto(Option option) {
+    return new CartItemOptionResponseDto(option.getType(), option.getValue());
+  }
+
+  private int calculateTotalPrice(List<CartItemResponseDto> items) {
+    if (items == null || items.isEmpty()) return 0;
+
+    int sum = 0;
+    for (CartItemResponseDto i : items) {
+      // 판매 불가 상품은 합계에서 제외하고 싶으면 여기서 조건 걸면 됨.
+      // 지금은 "장바구니 총합"이니까 일단 모두 합산.
+      sum += i.getPrice() * i.getQuantity();
+    }
+    return sum;
   }
 }

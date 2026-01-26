@@ -15,7 +15,9 @@ public class CartItemResponseDto {
   // 화면 표시용
   private String itemName;
   private int price;
-  private List<String> options; // ex) ["SIZE: M", "COLOR: Black"]
+
+  // A안: 옵션 응답 형태
+  private List<CartItemOptionResponseDto> options;
 
   private int quantity;
   private boolean saleable; // 판매 가능 여부

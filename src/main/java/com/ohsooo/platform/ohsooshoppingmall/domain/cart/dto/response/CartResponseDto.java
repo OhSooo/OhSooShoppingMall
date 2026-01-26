@@ -10,5 +10,8 @@ public class CartResponseDto {
 
   private Long cartId;
   private Long userId;
+
+  private int totalPrice;
+
   private List<CartItemResponseDto> items;
 }

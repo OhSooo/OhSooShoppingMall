@@ -13,6 +13,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemV
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemVariantRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.entity.User;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.repository.UserRepository;
+import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,8 @@ public class CartService {
    */
   @Transactional(readOnly = true)
   public CartResponseDto getMyCart(Long userId) {
+    validateAuthPrincipal(userId);
+
     Cart cart = cartRepository.findWithItemsByUser_UserId(userId)
         .orElseGet(() -> createCartIfNotExists(userId));
 
@@ -45,17 +48,21 @@ public class CartService {
    * 장바구니 상품 추가
    */
   public CartResponseDto addItem(Long userId, CartItemAddRequestDto request) {
+    validateAuthPrincipal(userId);
+
     Cart cart = getOrCreateCart(userId);
 
     ItemVariant itemVariant = itemVariantRepository.findById(request.getItemVariantId())
-        .orElseThrow(() ->
-            new IllegalArgumentException(CartErrorCode.CART_ITEM_NOT_FOUND.getMessage())
-        );
+        .orElseThrow(() -> new BusinessException(CartErrorCode.ITEM_VARIANT_NOT_FOUND));
 
     CartItem newItem = CartItem.of(itemVariant, request.getQuantity());
     cart.addOrIncreaseItem(newItem);
 
-    return cartMapper.toCartResponseDto(cart);
+    // 저장은 cascade로 되지만, 조회 응답은 옵션까지 필요하니 fetch(EntityGraph) 버전으로 다시 로딩
+    Cart reloaded = cartRepository.findWithItemsByUser_UserId(userId)
+        .orElseThrow(() -> new BusinessException(CartErrorCode.CART_NOT_FOUND));
+
+    return cartMapper.toCartResponseDto(reloaded);
   }
 
   /**
@@ -66,30 +73,33 @@ public class CartService {
       Long cartItemId,
       CartItemUpdateRequestDto request
   ) {
+    validateAuthPrincipal(userId);
+
     if (request.getQuantity() == null || request.getQuantity() <= 0) {
-      throw new IllegalArgumentException(CartErrorCode.INVALID_QUANTITY.getMessage());
+      throw new BusinessException(CartErrorCode.INVALID_QUANTITY);
     }
 
     CartItem cartItem = cartItemRepository
         .findByCartItemIdAndCart_User_UserId(cartItemId, userId)
-        .orElseThrow(() ->
-            new IllegalArgumentException(CartErrorCode.CART_ITEM_NOT_FOUND.getMessage())
-        );
+        .orElseThrow(() -> new BusinessException(CartErrorCode.CART_ITEM_NOT_FOUND));
 
     cartItem.changeQuantity(request.getQuantity());
 
-    return cartMapper.toCartResponseDto(cartItem.getCart());
+    Cart reloaded = cartRepository.findWithItemsByUser_UserId(userId)
+        .orElseThrow(() -> new BusinessException(CartErrorCode.CART_NOT_FOUND));
+
+    return cartMapper.toCartResponseDto(reloaded);
   }
 
   /**
    * 장바구니 상품 삭제
    */
   public void removeItem(Long userId, Long cartItemId) {
+    validateAuthPrincipal(userId);
+
     CartItem cartItem = cartItemRepository
         .findByCartItemIdAndCart_User_UserId(cartItemId, userId)
-        .orElseThrow(() ->
-            new IllegalArgumentException(CartErrorCode.CART_ITEM_NOT_FOUND.getMessage())
-        );
+        .orElseThrow(() -> new BusinessException(CartErrorCode.CART_ITEM_NOT_FOUND));
 
     cartItem.getCart().removeItemByVariantId(
         cartItem.getItemVariant().getItemVariantId()
@@ -100,10 +110,10 @@ public class CartService {
    * 장바구니 비우기
    */
   public void clearCart(Long userId) {
+    validateAuthPrincipal(userId);
+
     Cart cart = cartRepository.findByUser_UserId(userId)
-        .orElseThrow(() ->
-            new IllegalArgumentException(CartErrorCode.CART_NOT_FOUND.getMessage())
-        );
+        .orElseThrow(() -> new BusinessException(CartErrorCode.CART_NOT_FOUND));
 
     cart.clear();
   }
@@ -117,11 +127,15 @@ public class CartService {
 
   private Cart createCartIfNotExists(Long userId) {
     User user = userRepository.findById(userId)
-        .orElseThrow(() ->
-            new IllegalArgumentException(CartErrorCode.CART_ACCESS_DENIED.getMessage())
-        );
+        .orElseThrow(() -> new BusinessException(CartErrorCode.CART_ACCESS_DENIED));
 
     Cart cart = Cart.create(user);
     return cartRepository.save(cart);
+  }
+
+  private void validateAuthPrincipal(Long userId) {
+    if (userId == null) {
+      throw new BusinessException(CartErrorCode.AUTH_PRINCIPAL_MISSING);
+    }
   }
 }
