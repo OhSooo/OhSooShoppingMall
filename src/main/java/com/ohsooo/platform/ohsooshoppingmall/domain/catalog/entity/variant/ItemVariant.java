@@ -2,6 +2,8 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Item;
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -33,6 +35,14 @@ public class ItemVariant {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
   private ItemVariantStatus status;
+
+  @OneToMany(
+      mappedBy = "itemVariant",
+      fetch = FetchType.LAZY,
+      cascade = CascadeType.ALL,
+      orphanRemoval = true
+  )
+  private List<ItemVariantOption> itemVariantOptions = new ArrayList<>();
 
   public ItemVariant(Item item, String sku, int price, int quantity) {
     this.item = item;
