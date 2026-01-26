@@ -20,7 +20,6 @@ public class Item {
     @Column(name = "item_id")
     private Long itemId;
 
-    // store와 category entity와 어떻게 연결하는지?
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
