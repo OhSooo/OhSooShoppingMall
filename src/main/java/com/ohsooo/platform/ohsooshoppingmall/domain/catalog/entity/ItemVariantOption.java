@@ -7,8 +7,8 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @Entity
-@Table(     // TODO: DB에 유니크 제약 추가
-        name = "item_variant_option",
+@Table(
+        name = "item_variant_options",
         uniqueConstraints = {
                 @UniqueConstraint(
                         columnNames = {"item_variant_id", "option_id"}

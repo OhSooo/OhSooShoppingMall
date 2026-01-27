@@ -8,13 +8,24 @@ import lombok.Getter;
 public class OptionResponse {
 
     private Long optionId;
-    private Item item;
+
+    // Item 요약 정보
+    private final Long itemId;
+    private final String itemName;
+
     private OptionType type;
     private String value;
 
-    public OptionResponse(Long optionId, Item item, OptionType type, String value) {
+    public OptionResponse(
+            Long optionId,
+            Long itemId,
+            String itemName,
+            OptionType type,
+            String value
+    ) {
         this.optionId = optionId;
-        this.item = item;
+        this.itemId = itemId;
+        this.itemName = itemName;
         this.type = type;
         this.value = value;
     }

@@ -8,10 +8,12 @@ import org.springframework.stereotype.Component;
 public class ItemVariantOptionMapper {
 
     public ItemVariantOptionResponse toResponse(final ItemVariantOption itemVariantOption) {
-        return new ItemVariantOptionResponse(
-                itemVariantOption.getItemVariantOptionId(),
-                itemVariantOption.getOption(),
-                itemVariantOption.getItemVariant()
-        );
+        return ItemVariantOptionResponse.builder()
+                .id(itemVariantOption.getItemVariantOptionId())
+                .optionId(itemVariantOption.getOption().getOptionId())
+                .optionType(itemVariantOption.getOption().getType())
+                .optionValue(itemVariantOption.getOption().getValue())
+                .itemVariantId(itemVariantOption.getItemVariant().getItemVariantId())
+                .build();
     }
 }
