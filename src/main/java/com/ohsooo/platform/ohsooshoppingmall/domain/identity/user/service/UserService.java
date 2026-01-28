@@ -43,7 +43,9 @@ public class UserService {
         request.getBirth(),
         request.getGender(),
         request.getPhone(),
-        request.getAddress()
+        request.getAddress(),
+        request.getShippingPostcode(),
+        request.getShippingAddressDetail()
     );
 
   }

@@ -36,6 +36,12 @@ public class User extends BaseTimeEntity {
   @Column(name = "address", length = 255, nullable = true)
   private String address;
 
+  @Column(name = "shipping_postcode", length = 20, nullable = true)
+  private String shippingPostcode;
+
+  @Column(name = "shipping_address_detail", length = 255, nullable = true)
+  private String shippingAddressDetail;
+
   @Enumerated(EnumType.STRING)
   @Column(name = "role", nullable = false, length = 20)
   private Role role;
@@ -49,7 +55,9 @@ public class User extends BaseTimeEntity {
       LocalDate birth,
       Gender gender,
       String phone,
-      String address
+      String address,
+      String shippingPostcode,
+      String shippingAddressDetail
   ) {
     User u = new User();
     u.name = name;
@@ -57,6 +65,8 @@ public class User extends BaseTimeEntity {
     u.gender = gender;
     u.phone = phone;
     u.address = address;
+    u.shippingPostcode = shippingPostcode;
+    u.shippingAddressDetail = shippingAddressDetail;
     u.role = Role.GENERAL;
     u.onboarded = true;
     return u;
@@ -76,17 +86,22 @@ public class User extends BaseTimeEntity {
       LocalDate birth,
       Gender gender,
       String phone,
-      String address
+      String address,
+      String shippingPostcode,
+      String shippingAddressDetail
   ) {
     if (name != null) this.name = name;
     if (birth != null) this.birth = birth;
     if (gender != null) this.gender = gender;
     if (phone != null) this.phone = phone;
     if (address != null) this.address = address;
+    if (shippingPostcode != null) this.shippingPostcode = shippingPostcode;
+    if (shippingAddressDetail != null) this.shippingAddressDetail = shippingAddressDetail;
 
     // onboarded 여부 판단
     if (this.name != null && this.birth != null && this.gender != null
-        && this.phone != null && this.address != null) {
+        && this.phone != null && this.address != null
+        && this.shippingPostcode != null && this.shippingAddressDetail != null) {
       this.onboarded = true;
     }
   }

@@ -15,6 +15,8 @@ public class UserMapper {
         .gender(user.getGender())
         .phone(user.getPhone())
         .address(user.getAddress())
+        .shippingPostcode(user.getShippingPostcode())
+        .shippingAddressDetail(user.getShippingAddressDetail())
         .role(user.getRole())
         .onboarded(user.isOnboarded())
         .build();

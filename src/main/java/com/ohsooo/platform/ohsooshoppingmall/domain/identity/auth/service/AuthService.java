@@ -65,7 +65,9 @@ public class AuthService {
               request.getBirth(),
               request.getGender(),
               request.getPhone(),
-              request.getAddress()
+              request.getAddress(),
+              request.getShippingPostcode(),
+              request.getShippingAddressDetail()
           );
           user.markOnboarded();
 
@@ -87,7 +89,9 @@ public class AuthService {
               request.getBirth(),
               request.getGender(),
               request.getPhone(),
-              request.getAddress()
+              request.getAddress(),
+              request.getShippingPostcode(),
+              request.getShippingAddressDetail()
           );
           User savedUser = userRepository.save(user);
 

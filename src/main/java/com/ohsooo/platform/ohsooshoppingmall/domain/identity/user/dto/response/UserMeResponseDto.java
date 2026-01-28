@@ -22,6 +22,8 @@ public class UserMeResponseDto {
   private Gender gender;
   private String phone;
   private String address;
+  private String shippingPostcode;
+  private String shippingAddressDetail;
   private Role role;
 
   private boolean onboarded;
