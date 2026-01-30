@@ -65,6 +65,10 @@ dependencies {
 	// SMTP
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 
+	// validation
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+
 }
 
 tasks.named('test') {
