@@ -3,7 +3,9 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Item;
 import jakarta.persistence.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -42,7 +44,7 @@ public class ItemVariant {
       cascade = CascadeType.ALL,
       orphanRemoval = true
   )
-  private List<ItemVariantOption> itemVariantOptions = new ArrayList<>();
+  private Set<ItemVariantOption> itemVariantOptions = new HashSet<>();
 
   public ItemVariant(Item item, String sku, int price, int quantity) {
     this.item = item;

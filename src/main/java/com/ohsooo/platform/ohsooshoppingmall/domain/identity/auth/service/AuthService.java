@@ -108,14 +108,12 @@ public class AuthService {
     return result;
   }
 
-
-
-
   /**
    * 로컬 로그인
    * - auth_identities(LOCAL,email) 조회
    * - 비밀번호 검증
    * - user soft delete 여부 확인
+   *
    * @return userId
    */
   @Transactional(readOnly = true)
@@ -167,6 +165,9 @@ public class AuthService {
 
   /**
    * AccessToken에 넣을 claims 생성
+   *
+   * - role: 권한 판별용 (SecurityConfig의 hasRole/hasAnyRole에 사용)
+   * - provider: 선택 (로그/분기 처리에 유용)
    */
   @Transactional(readOnly = true)
   public Map<String, Object> buildAccessClaims(Long userId) {
@@ -174,13 +175,27 @@ public class AuthService {
         .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
 
     Map<String, Object> claims = new HashMap<>();
-    claims.put("role", user.getRole().name());
+    claims.put("role", user.getRole().name()); // "GENERAL" / "OWNER" / "ADMIN"
+
+    // provider를 "항상" 넣고 싶으면 기본값 LOCAL로 처리(권장)
+    // - 로컬 로그인: LOCAL
+    // - 소셜 로그인: 호출부에서 아래 overload 사용 권장
+    claims.put("provider", AuthProvider.LOCAL.name());
+
     return claims;
   }
 
+  /**
+   * provider를 명시할 수 있는 overload
+   * - 소셜 로그인 성공 핸들러에서 사용 권장
+   */
   @Transactional(readOnly = true)
   public Map<String, Object> buildAccessClaims(Long userId, AuthProvider provider) {
-    Map<String, Object> claims = buildAccessClaims(userId);
+    User user = userRepository.findByUserIdAndIsDeletedFalse(userId)
+        .orElseThrow(() -> new BusinessException(AuthErrorCode.USER_NOT_FOUND));
+
+    Map<String, Object> claims = new HashMap<>();
+    claims.put("role", user.getRole().name());
     claims.put("provider", provider.name());
     return claims;
   }
@@ -188,11 +203,6 @@ public class AuthService {
   /**
    * 비밀번호 재발급(임시 비밀번호 발송)
    * - 대상: 로컬 계정(LOCAL)
-   * - 동작:
-   *   1) auth_identities(LOCAL, email) 조회
-   *   2) 임시 비밀번호 생성
-   *   3) password_hash를 임시 비밀번호 해시로 교체
-   *   4) 이메일로 임시 비밀번호 발송
    */
   @Transactional
   public void sendTemporaryPassword(String email) {
@@ -214,11 +224,6 @@ public class AuthService {
    * 비밀번호 변경(마이페이지)
    * - 인증: AccessToken 필요(@AuthenticationPrincipal userId)
    * - 대상: 로컬 계정(LOCAL)
-   * - 동작:
-   *   1) 새 비밀번호/확인 일치 검증
-   *   2) auth_identities(userId, LOCAL) 조회
-   *   3) 현재 비밀번호 검증
-   *   4) password_hash 갱신
    *
    * @return 변경 시각
    */

@@ -1,6 +1,7 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.response;
 
 import java.util.List;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -17,7 +18,7 @@ public class CartItemResponseDto {
   private int price;
 
   // A안: 옵션 응답 형태
-  private List<CartItemOptionResponseDto> options;
+  private Set<CartItemOptionResponseDto> options;
 
   private int quantity;
   private boolean saleable; // 판매 가능 여부

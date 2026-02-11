@@ -65,6 +65,13 @@ public class JwtProvider {
     return Long.valueOf(claims.getSubject());
   }
 
+  /* ===== 추가: 특정 claim을 String으로 추출 ===== */
+  public String getClaimAsString(String token, String key) {
+    Claims claims = parse(token).getBody();
+    Object value = claims.get(key);
+    return value == null ? null : String.valueOf(value);
+  }
+
   /* 토큰의 유효성 확인 */
   public boolean isValid(String token) {
     try {

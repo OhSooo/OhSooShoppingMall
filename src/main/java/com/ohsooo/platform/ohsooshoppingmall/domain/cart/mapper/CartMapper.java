@@ -13,6 +13,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemV
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariantStatus;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
@@ -39,7 +40,7 @@ public class CartMapper {
     ItemVariant variant = cartItem.getItemVariant();
     Item item = variant.getItem();
 
-    List<CartItemOptionResponseDto> options = toOptionDtos(variant.getItemVariantOptions());
+    Set<CartItemOptionResponseDto> options = toOptionDtos(variant.getItemVariantOptions());
 
     boolean saleable =
         item.getStatus() == ItemStatus.ACTIVE
@@ -64,15 +65,15 @@ public class CartMapper {
         .collect(Collectors.toList());
   }
 
-  private List<CartItemOptionResponseDto> toOptionDtos(List<ItemVariantOption> itemVariantOptions) {
+  private Set<CartItemOptionResponseDto> toOptionDtos(Set<ItemVariantOption> itemVariantOptions) {
     if (itemVariantOptions == null || itemVariantOptions.isEmpty()) {
-      return Collections.emptyList();
+      return Collections.emptySet();
     }
 
     return itemVariantOptions.stream()
         .map(ItemVariantOption::getOption)
         .map(this::toOptionDto)
-        .collect(Collectors.toList());
+        .collect(Collectors.toSet());
   }
 
   private CartItemOptionResponseDto toOptionDto(Option option) {
