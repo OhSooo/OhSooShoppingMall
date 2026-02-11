@@ -14,8 +14,10 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemVaria
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.entity.User;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.repository.UserRepository;
 import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
+import java.util.Collections;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,19 +35,21 @@ public class CartService {
 
   /**
    * 내 장바구니 조회
+   * - Cart가 없으면 DB에 생성하지 않고 빈 배열 반환
    */
   @Transactional(readOnly = true)
   public CartResponseDto getMyCart(Long userId) {
     validateAuthPrincipal(userId);
 
-    Cart cart = cartRepository.findWithItemsByUser_UserId(userId)
-        .orElseGet(() -> createCartIfNotExists(userId));
-
-    return cartMapper.toCartResponseDto(cart);
+    return cartRepository.findWithItemsByUser_UserId(userId)
+        .map(cartMapper::toCartResponseDto)
+        .orElseGet(() -> new CartResponseDto(null, userId, 0, Collections.emptyList()));
   }
 
   /**
    * 장바구니 상품 추가
+   * - Cart가 없으면 이 시점에 생성
+   * - 동시 요청으로 UNIQUE(user_id) 충돌이 나면 재조회로 복구
    */
   public CartResponseDto addItem(Long userId, CartItemAddRequestDto request) {
     validateAuthPrincipal(userId);
@@ -58,7 +62,7 @@ public class CartService {
     CartItem newItem = CartItem.of(itemVariant, request.getQuantity());
     cart.addOrIncreaseItem(newItem);
 
-    // 저장은 cascade로 되지만, 조회 응답은 옵션까지 필요하니 fetch(EntityGraph) 버전으로 다시 로딩
+    // 옵션까지 포함한 응답을 위해 EntityGraph 조회로 다시 로딩
     Cart reloaded = cartRepository.findWithItemsByUser_UserId(userId)
         .orElseThrow(() -> new BusinessException(CartErrorCode.CART_NOT_FOUND));
 
@@ -108,24 +112,31 @@ public class CartService {
 
   /**
    * 장바구니 비우기
+   * - Cart가 없어도 "비워진 상태"이므로 성공(멱등)
    */
   public void clearCart(Long userId) {
     validateAuthPrincipal(userId);
 
-    Cart cart = cartRepository.findByUser_UserId(userId)
-        .orElseThrow(() -> new BusinessException(CartErrorCode.CART_NOT_FOUND));
-
-    cart.clear();
+    cartRepository.findByUser_UserId(userId).ifPresent(Cart::clear);
   }
 
   /* ==================== 내부 유틸 ==================== */
 
   private Cart getOrCreateCart(Long userId) {
     return cartRepository.findByUser_UserId(userId)
-        .orElseGet(() -> createCartIfNotExists(userId));
+        .orElseGet(() -> {
+          try {
+            return createCart(userId);
+          } catch (DataIntegrityViolationException e) {
+            // 동시 요청으로 UNIQUE(user_id) 충돌이 날 수 있음 -> 누군가 먼저 생성했으니 재조회
+            log.warn("Cart create raced for userId={}, retrying find. cause={}", userId, e.getMessage());
+            return cartRepository.findByUser_UserId(userId)
+                .orElseThrow(() -> e);
+          }
+        });
   }
 
-  private Cart createCartIfNotExists(Long userId) {
+  private Cart createCart(Long userId) {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new BusinessException(CartErrorCode.CART_ACCESS_DENIED));
 
