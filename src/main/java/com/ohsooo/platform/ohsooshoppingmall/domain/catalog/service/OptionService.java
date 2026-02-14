@@ -1,8 +1,8 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.service;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.OptionResponse;
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Option;
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.OptionType;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.option.Option;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.option.OptionType;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.mapper.OptionMapper;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.OptionRepository;

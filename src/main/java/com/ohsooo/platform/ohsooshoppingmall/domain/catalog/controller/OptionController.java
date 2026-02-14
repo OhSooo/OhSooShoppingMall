@@ -2,7 +2,7 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.controller;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.CreateOptionRequest;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.OptionResponse;
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.OptionType;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.option.OptionType;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.service.OptionService;
 import com.ohsooo.platform.ohsooshoppingmall.global.response.BaseResponse;
 import io.swagger.v3.oas.annotations.Operation;

@@ -1,7 +1,7 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository;
 
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.ItemVariant;
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.ItemVariantStatus;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariant;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariantStatus;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;

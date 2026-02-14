@@ -1,8 +1,6 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response;
 
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.ItemVariant;
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Option;
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.OptionType;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.option.OptionType;
 import lombok.Builder;
 import lombok.Getter;
 

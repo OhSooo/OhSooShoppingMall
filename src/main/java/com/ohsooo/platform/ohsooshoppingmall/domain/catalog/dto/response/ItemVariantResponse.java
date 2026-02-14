@@ -1,10 +1,8 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response;
 
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Item;
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.ItemVariantStatus;
-import lombok.Getter;
-
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariantStatus;
 import java.math.BigDecimal;
+import lombok.Getter;
 
 @Getter
 public class ItemVariantResponse {
@@ -21,13 +19,13 @@ public class ItemVariantResponse {
     private final ItemVariantStatus status;
 
     public ItemVariantResponse(
-            Long id,
-            Long itemId,
-            String itemName,
-            String sku,
-            BigDecimal price,
-            int quantity,
-            ItemVariantStatus status
+        Long id,
+        Long itemId,
+        String itemName,
+        String sku,
+        BigDecimal price,
+        int quantity,
+        ItemVariantStatus status
     ) {
         this.id = id;
         this.itemId = itemId;

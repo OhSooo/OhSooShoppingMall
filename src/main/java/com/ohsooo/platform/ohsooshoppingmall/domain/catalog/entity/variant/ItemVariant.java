@@ -2,9 +2,8 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Item;
 import jakarta.persistence.*;
-import java.util.ArrayList;
+import java.math.BigDecimal;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -28,8 +27,8 @@ public class ItemVariant {
   @Column(nullable = false, length = 100, unique = true)
   private String sku;
 
-  @Column(nullable = false)
-  private int price;
+  @Column(nullable = false, precision = 12, scale = 2)
+  private BigDecimal price;
 
   @Column(nullable = false)
   private int quantity;
@@ -46,7 +45,7 @@ public class ItemVariant {
   )
   private Set<ItemVariantOption> itemVariantOptions = new HashSet<>();
 
-  public ItemVariant(Item item, String sku, int price, int quantity) {
+  public ItemVariant(Item item, String sku, BigDecimal price, int quantity) {
     this.item = item;
     this.sku = sku;
     this.price = price;

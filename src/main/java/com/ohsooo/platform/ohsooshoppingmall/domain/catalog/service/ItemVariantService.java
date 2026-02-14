@@ -3,8 +3,8 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.service;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemVariantResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Item;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.ItemStatus;
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.ItemVariant;
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.ItemVariantStatus;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariant;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariantStatus;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.mapper.ItemVariantMapper;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemVariantRepository;
@@ -35,7 +35,7 @@ public class ItemVariantService {
     // ID로 단건 조회
     @Transactional(readOnly = true)
     public ItemVariantResponse findById(Long id) {
-        ItemVariant itemVariant = itemVariantRepository.findByItemVariantId(id)
+        ItemVariant itemVariant = itemVariantRepository.findById(id)
                 .orElseThrow(()-> new IllegalArgumentException("상품 판매 단위를 찾을 수 없습니다"));
         return itemVariantMapper.toResponse(itemVariant);
     }

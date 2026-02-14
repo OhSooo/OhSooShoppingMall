@@ -2,7 +2,7 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.mapper;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.OptionResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Item;
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Option;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.option.Option;
 import org.springframework.stereotype.Component;
 
 @Component

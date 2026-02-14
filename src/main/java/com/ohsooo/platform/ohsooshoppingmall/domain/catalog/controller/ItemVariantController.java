@@ -2,8 +2,8 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.controller;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemVariantResponse;
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.ItemVariant;
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.ItemVariantStatus;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariant;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariantStatus;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.service.ItemVariantService;
 import com.ohsooo.platform.ohsooshoppingmall.global.response.BaseResponse;
 import io.swagger.v3.oas.annotations.Operation;

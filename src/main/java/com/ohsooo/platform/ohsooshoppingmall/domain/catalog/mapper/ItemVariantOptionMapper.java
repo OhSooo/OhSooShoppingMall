@@ -1,7 +1,7 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.mapper;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemVariantOptionResponse;
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.ItemVariantOption;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariantOption;
 import org.springframework.stereotype.Component;
 
 @Component

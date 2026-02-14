@@ -1,7 +1,7 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository;
 
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Option;
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.OptionType;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.option.Option;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.option.OptionType;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 
