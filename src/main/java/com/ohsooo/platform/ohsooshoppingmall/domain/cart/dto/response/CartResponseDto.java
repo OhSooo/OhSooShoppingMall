@@ -1,5 +1,6 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.response;
 
+import java.math.BigDecimal;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,7 +12,7 @@ public class CartResponseDto {
   private Long cartId;
   private Long userId;
 
-  private int totalPrice;
+  private BigDecimal totalPrice;
 
   private List<CartItemResponseDto> items;
 }

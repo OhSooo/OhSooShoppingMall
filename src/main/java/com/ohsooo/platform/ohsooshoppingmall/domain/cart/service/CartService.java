@@ -14,6 +14,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemVaria
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.entity.User;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.repository.UserRepository;
 import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
+import java.math.BigDecimal;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +44,7 @@ public class CartService {
 
     return cartRepository.findWithItemsByUser_UserId(userId)
         .map(cartMapper::toCartResponseDto)
-        .orElseGet(() -> new CartResponseDto(null, userId, 0, Collections.emptyList()));
+        .orElseGet(() -> new CartResponseDto(null, userId, BigDecimal.ZERO, Collections.emptyList()));
   }
 
   /**

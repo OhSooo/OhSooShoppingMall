@@ -1,6 +1,6 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.response;
 
-import java.util.List;
+import java.math.BigDecimal;
 import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,9 +15,9 @@ public class CartItemResponseDto {
 
   // 화면 표시용
   private String itemName;
-  private int price;
+  private BigDecimal price;
 
-  // A안: 옵션 응답 형태
+  // 옵션 응답 형태
   private Set<CartItemOptionResponseDto> options;
 
   private int quantity;

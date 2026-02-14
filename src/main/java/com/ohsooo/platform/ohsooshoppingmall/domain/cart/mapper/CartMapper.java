@@ -11,6 +11,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.option.Option
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariant;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariantOption;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariantStatus;
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -24,7 +25,7 @@ public class CartMapper {
     if (cart == null) return null;
 
     List<CartItemResponseDto> items = toCartItemResponseDtoList(cart.getCartItems());
-    int totalPrice = calculateTotalPrice(items);
+    BigDecimal totalPrice = calculateTotalPrice(items);
 
     return new CartResponseDto(
         cart.getCartId(),
@@ -50,7 +51,7 @@ public class CartMapper {
         cartItem.getCartItemId(),
         variant.getItemVariantId(),
         item.getName(),
-        variant.getPrice(),
+        variant.getPrice(), // BigDecimal
         options,
         cartItem.getQuantity(),
         saleable
@@ -80,14 +81,13 @@ public class CartMapper {
     return new CartItemOptionResponseDto(option.getType(), option.getValue());
   }
 
-  private int calculateTotalPrice(List<CartItemResponseDto> items) {
-    if (items == null || items.isEmpty()) return 0;
+  private BigDecimal calculateTotalPrice(List<CartItemResponseDto> items) {
+    if (items == null || items.isEmpty()) return BigDecimal.ZERO;
 
-    int sum = 0;
+    BigDecimal sum = BigDecimal.ZERO;
     for (CartItemResponseDto i : items) {
-      // 판매 불가 상품은 합계에서 제외하고 싶으면 여기서 조건 걸면 됨.
-      // 지금은 "장바구니 총합"이니까 일단 모두 합산.
-      sum += i.getPrice() * i.getQuantity();
+      // sum += price * quantity
+      sum = sum.add(i.getPrice().multiply(BigDecimal.valueOf(i.getQuantity())));
     }
     return sum;
   }
