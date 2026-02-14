@@ -1,9 +1,6 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response;
 
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Category;
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Item;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.ItemStatus;
-import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.Store;
 import lombok.Getter;
 
 import java.math.BigDecimal;
@@ -17,17 +14,33 @@ public class ItemResponse {
     private final Long categoryId;
     private final String name;
     private final ItemStatus status;
-    private int basePrice;
-    private BigDecimal rating;
-    private int reviewCount;
-    private OffsetDateTime createdAt;
-    private OffsetDateTime updatedAt;
-    private boolean isDeleted;
-    private OffsetDateTime deletedAt;
 
-    public ItemResponse(Long id, Long storeId, Long categoryId, String name, ItemStatus status, int basePrice, BigDecimal rating, int reviewCount, OffsetDateTime createdAt, OffsetDateTime updatedAt, boolean isDeleted, OffsetDateTime deletedAt) {
+    // int -> BigDecimal
+    private final BigDecimal basePrice;
+
+    private final BigDecimal rating;
+    private final int reviewCount;
+    private final OffsetDateTime createdAt;
+    private final OffsetDateTime updatedAt;
+    private final boolean isDeleted;
+    private final OffsetDateTime deletedAt;
+
+    public ItemResponse(
+        Long id,
+        Long storeId,
+        Long categoryId,
+        String name,
+        ItemStatus status,
+        BigDecimal basePrice,
+        BigDecimal rating,
+        int reviewCount,
+        OffsetDateTime createdAt,
+        OffsetDateTime updatedAt,
+        boolean isDeleted,
+        OffsetDateTime deletedAt
+    ) {
         this.id = id;
-        this.storeId= storeId;
+        this.storeId = storeId;
         this.categoryId = categoryId;
         this.name = name;
         this.status = status;
