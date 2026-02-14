@@ -18,6 +18,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.pgdto.respo
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.repository.PaymentRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.validator.PaymentStateValidator;
 import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -45,6 +46,14 @@ public class PaymentCommandService {
   public PaymentCreateResponseDto createPayment(Long userId, PaymentCreateRequestDto request) {
     if (userId == null) throw new BusinessException(PaymentErrorCode.AUTH_PRINCIPAL_MISSING);
     if (request == null) throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_AMOUNT);
+
+    // amount null/0 이하 방지 (최소한)
+    if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+      throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_AMOUNT);
+    }
+
+    // (선택) KRW 정수 정책 검증까지 하고 싶으면 열어도 됨
+    // toKrwIntegerAmount(request.getAmount());
 
     // 주문 소유 검증
     orderRepository.findByOrderIdAndUser_UserId(request.getOrderId(), userId)
@@ -76,6 +85,18 @@ public class PaymentCommandService {
     // 상태 검증 (READY → confirm 가능 등)
     paymentStateValidator.validateConfirmable(payment);
 
+    // (선택) 클라이언트 amount 정책 검증: KRW 정수인지 먼저 확인
+    if (request.getAmount() != null) {
+      toKrwIntegerAmount(request.getAmount());
+    }
+
+    // 클라이언트가 amount를 보내면 위변조 방지로 비교
+    if (request.getAmount() != null && payment.getAmount() != null) {
+      if (payment.getAmount().compareTo(request.getAmount()) != 0) {
+        throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_AMOUNT);
+      }
+    }
+
     // 클라이언트 confirm 요청 이벤트 기록
     paymentEventService.saveEvent(
         payment,
@@ -86,14 +107,27 @@ public class PaymentCommandService {
     // PG 라우팅
     PgClient pgClient = pgClientRouter.route(payment.getProvider());
 
+    // 토스 confirm amount는 "원 단위 정수" → 변환
+    int tossAmount = toKrwIntegerAmount(payment.getAmount());
+
     TossApproveRequest approveRequest = new TossApproveRequest(
         request.getPaymentKey(),
         String.valueOf(payment.getOrderId()),
-        payment.getAmount()
+        tossAmount
     );
 
     try {
       TossApproveResponse resp = (TossApproveResponse) pgClient.approve(approveRequest);
+
+      // ===== (추가) PG 승인 응답 금액 검증 =====
+      // resp.totalAmount(정수) ↔ payment.amount(BigDecimal) 일치해야 함
+      if (resp == null || resp.getTotalAmount() == null) {
+        throw new BusinessException(PaymentErrorCode.PG_API_CALL_FAILED);
+      }
+      BigDecimal approvedAmount = BigDecimal.valueOf(resp.getTotalAmount());
+      if (payment.getAmount() == null || payment.getAmount().compareTo(approvedAmount) != 0) {
+        throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_AMOUNT);
+      }
 
       // String → OffsetDateTime 변환
       OffsetDateTime approvedAt = null;
@@ -111,7 +145,7 @@ public class PaymentCommandService {
           approvedAt
       );
 
-      // 승인 성공 이벤트 기록 (웹훅과는 별개로 내부 로그 용도)
+      // 승인 성공 이벤트 기록
       paymentEventService.saveEvent(payment, PaymentEventType.WEBHOOK_APPROVED, safeJson(resp));
 
       return paymentMapper.toConfirmResponseDto(payment);
@@ -125,11 +159,32 @@ public class PaymentCommandService {
     }
   }
 
+  /**
+   * KRW는 소수점 없는 통화라서
+   * - scale > 0 이면 예외 처리(정책적으로 더 안전)
+   */
+  private int toKrwIntegerAmount(BigDecimal amount) {
+    if (amount == null) throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_AMOUNT);
+    if (amount.compareTo(BigDecimal.ZERO) <= 0) throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_AMOUNT);
+
+    // 15000.00 은 ok, 15000.10 같은 건 막기
+    if (amount.stripTrailingZeros().scale() > 0) {
+      throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_AMOUNT);
+    }
+
+    try {
+      return amount.intValueExact();
+    } catch (ArithmeticException e) {
+      throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_AMOUNT, e);
+    }
+  }
+
   private String toConfirmPayloadJson(Long paymentId, PaymentConfirmRequestDto request) {
     try {
       Map<String, Object> payload = new LinkedHashMap<>();
       payload.put("paymentId", paymentId);
       payload.put("paymentKey", request.getPaymentKey());
+      payload.put("amount", request.getAmount());
       return objectMapper.writeValueAsString(payload);
     } catch (Exception e) {
       return "{\"paymentId\":" + paymentId + "}";

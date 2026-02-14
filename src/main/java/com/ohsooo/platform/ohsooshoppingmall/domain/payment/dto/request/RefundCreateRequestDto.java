@@ -1,6 +1,7 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.payment.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.math.BigDecimal;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -16,7 +17,7 @@ public class RefundCreateRequestDto {
   private Long paymentId;
 
   @Schema(description = "환불 총액", example = "5000")
-  private Integer amount;
+  private BigDecimal amount;
 
   @Schema(description = "환불 사유(선택)", example = "단순 변심")
   private String reason;

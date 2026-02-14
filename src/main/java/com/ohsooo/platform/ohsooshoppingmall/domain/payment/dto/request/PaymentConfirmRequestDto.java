@@ -1,6 +1,7 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.payment.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,5 +22,5 @@ public class PaymentConfirmRequestDto {
   private String paymentKey;
 
   @Schema(description = "결제 금액. 토스 successUrl query로 전달됨", example = "15000")
-  private Integer amount;
+  private BigDecimal amount;
 }

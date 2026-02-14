@@ -1,6 +1,7 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -32,17 +33,17 @@ public class RefundItem {
   @Column(name = "order_item_id", nullable = false)
   private Long orderItemId;
 
-  @Column(name = "amount", nullable = false)
-  private Integer amount;
+  @Column(name = "amount", nullable = false, precision = 19, scale = 2)
+  private BigDecimal amount;
 
   @Column(name = "quantity", nullable = false)
   private Integer quantity;
 
-  public static RefundItem of(Refund refund, Long orderItemId, Integer amount, Integer quantity) {
+  public static RefundItem of(Refund refund, Long orderItemId, BigDecimal amount, Integer quantity) {
     RefundItem ri = new RefundItem();
     ri.refund = refund;
     ri.orderItemId = orderItemId;
-    ri.amount = amount;
+    ri.amount = (amount == null) ? BigDecimal.ZERO : amount;
     ri.quantity = quantity;
     return ri;
   }

@@ -5,6 +5,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.enums.Payment
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.enums.PaymentStatus;
 import com.ohsooo.platform.ohsooshoppingmall.global.common.BaseTimeEntity;
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -46,8 +47,8 @@ public class Payment extends BaseTimeEntity {
   @Column(name = "status", nullable = false, length = 30)
   private PaymentStatus status;
 
-  @Column(name = "amount", nullable = false)
-  private Integer amount;
+  @Column(name = "amount", nullable = false, precision = 19, scale = 2)
+  private BigDecimal amount;
 
   @Column(name = "currency", nullable = false, length = 10)
   private String currency = "KRW";
@@ -83,14 +84,14 @@ public class Payment extends BaseTimeEntity {
    */
   public static Payment ready(
       Long orderId,
-      Integer amount,
+      BigDecimal amount,
       String currency,
       PaymentMethod method,
       PaymentProvider provider
   ) {
     Payment p = new Payment();
     p.orderId = orderId;
-    p.amount = amount;
+    p.amount = (amount == null) ? BigDecimal.ZERO : amount;
     p.currency = (currency == null || currency.isBlank()) ? "KRW" : currency;
     p.method = method;
     p.provider = provider;

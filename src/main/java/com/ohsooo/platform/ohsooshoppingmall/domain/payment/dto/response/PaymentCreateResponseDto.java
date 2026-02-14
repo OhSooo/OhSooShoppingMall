@@ -3,6 +3,7 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.payment.dto.response;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.enums.PaymentMethod;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.enums.PaymentProvider;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -24,7 +25,7 @@ public class PaymentCreateResponseDto {
   private String status;
 
   @Schema(description = "결제 금액", example = "15000")
-  private Integer amount;
+  private BigDecimal amount;
 
   @Schema(description = "통화", example = "KRW")
   private String currency;

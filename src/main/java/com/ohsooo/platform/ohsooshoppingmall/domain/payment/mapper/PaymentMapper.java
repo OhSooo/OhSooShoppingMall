@@ -80,17 +80,11 @@ public class PaymentMapper {
     );
   }
 
-  /**
-   * 결제 이벤트(사실 기록) 생성
-   * - 웹훅을 안 써도 "confirm 요청이 들어왔음" 같은 이벤트를 남기고 싶을 때 사용
-   * - payloadJson은 서비스에서 ObjectMapper로 만든 raw json 문자열을 넣는 걸 추천
-   */
   public PaymentEvent toClientConfirmEvent(Payment payment, String payloadJson) {
     String safePayload = (payloadJson == null) ? "{}" : payloadJson;
     return PaymentEvent.of(payment, PaymentEventType.CLIENT_CONFIRM_REQUEST, safePayload);
   }
 
-  /** (선택) 웹훅 이벤트 기록용 */
   public PaymentEvent toWebhookEvent(Payment payment, PaymentEventType type, String payloadJson) {
     String safePayload = (payloadJson == null) ? "{}" : payloadJson;
     return PaymentEvent.of(payment, type, safePayload);

@@ -2,6 +2,7 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.enums.RefundStatus;
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -30,8 +31,8 @@ public class Refund {
   @JoinColumn(name = "payment_id", nullable = false)
   private Payment payment;
 
-  @Column(name = "amount", nullable = false)
-  private Integer amount;
+  @Column(name = "amount", nullable = false, precision = 19, scale = 2)
+  private BigDecimal amount;
 
   @Enumerated(EnumType.STRING)
   @Column(name = "status", nullable = false)
@@ -46,10 +47,10 @@ public class Refund {
   @Column(name = "created_at", nullable = false)
   private OffsetDateTime createdAt;
 
-  public static Refund requested(Payment payment, Integer amount, String reason) {
+  public static Refund requested(Payment payment, BigDecimal amount, String reason) {
     Refund r = new Refund();
     r.payment = payment;
-    r.amount = amount;
+    r.amount = (amount == null) ? BigDecimal.ZERO : amount;
     r.reason = reason;
     r.status = RefundStatus.REQUESTED;
     r.createdAt = OffsetDateTime.now();

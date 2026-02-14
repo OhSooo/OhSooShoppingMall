@@ -1,6 +1,7 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.payment.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -22,7 +23,7 @@ public class RefundResponseDto {
   private String status;
 
   @Schema(description = "환불 금액", example = "5000")
-  private Integer amount;
+  private BigDecimal amount;
 
   @Schema(description = "환불 사유(선택)", example = "단순 변심")
   private String reason;
