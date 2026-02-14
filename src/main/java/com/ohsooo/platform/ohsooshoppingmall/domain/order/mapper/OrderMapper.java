@@ -17,11 +17,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class OrderMapper {
 
-  /** 주문 생성용 Order 엔티티 생성 (배송 스냅샷 포함) */
   public Order toOrderEntity(User user, OrderCreateRequestDto request) {
     OrderCreateRequestDto.ShippingInfo s = (request != null) ? request.getShipping() : null;
 
-    // ShippingInfo가 null이면 서비스/Validator에서 user fallback 채웠다고 가정
     String receiverName = (s != null) ? s.getReceiverName() : null;
     String receiverPhone = (s != null) ? s.getReceiverPhone() : null;
     String shippingAddress = (s != null) ? s.getShippingAddress() : null;
@@ -40,7 +38,6 @@ public class OrderMapper {
     );
   }
 
-  /** 주문 생성 응답 DTO */
   public OrderCreateResponseDto toCreateResponseDto(Order order) {
     List<OrderItemResponseDto> items = new ArrayList<>();
     if (order.getOrderItems() != null) {
@@ -54,11 +51,10 @@ public class OrderMapper {
         order.getStatus().name(),
         order.getTotalPrice(),
         items,
-        null // paymentRedirectHint (지금은 확장 포인트라 null)
+        null
     );
   }
 
-  /** 주문 상세 응답 DTO */
   public OrderResponseDto toOrderResponseDto(Order order, List<OrderItemResponseDto> items) {
     OrderResponseDto.ShippingInfo shipping = new OrderResponseDto.ShippingInfo(
         order.getReceiverName(),
@@ -81,7 +77,6 @@ public class OrderMapper {
     );
   }
 
-  /** 주문상품 응답 DTO */
   public OrderItemResponseDto toOrderItemResponseDto(OrderItem oi) {
     ItemVariant v = oi.getItemVariant();
     Item item = (v != null) ? v.getItem() : null;
@@ -101,7 +96,6 @@ public class OrderMapper {
       }
     }
 
-    // saleable/cancelable은 "정책 계산값"이라 현재는 최소 구현으로 내려줌
     boolean saleable = true;
     boolean cancelable = isCancelable(oi.getStatus());
 

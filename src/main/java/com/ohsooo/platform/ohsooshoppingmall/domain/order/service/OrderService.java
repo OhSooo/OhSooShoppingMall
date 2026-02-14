@@ -96,7 +96,6 @@ public class OrderService {
   public List<OrderListItemResponseDto> getMyOrders(Long userId) {
     if (userId == null) throw new BusinessException(OrderErrorCode.AUTH_PRINCIPAL_MISSING);
 
-    // summary 만들기 위해 orderItems + item + options 까지 로딩되어야 함
     List<Order> orders = orderRepository.findWithItemsByUser_UserIdOrderByOrderIdDesc(userId);
 
     List<OrderListItemResponseDto> result = new ArrayList<>();
@@ -114,12 +113,6 @@ public class OrderService {
     return result;
   }
 
-  /**
-   * summary 예시:
-   * - 1개면: "오프화이트 티셔츠 (BLACK/M)"
-   * - 여러개면: "오프화이트 티셔츠 (BLACK/M) 외 2건"
-   * - 옵션 없으면: "오프화이트 티셔츠 외 2건"
-   */
   private String buildOrderSummary(Order order) {
     if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) return "";
 
@@ -131,7 +124,7 @@ public class OrderService {
       firstName = v.getItem().getName();
     }
 
-    String optionText = buildOptionSummary(v); // 예: "BLACK/M" or ""
+    String optionText = buildOptionSummary(v);
 
     String head = optionText.isBlank()
         ? firstName
@@ -143,10 +136,6 @@ public class OrderService {
     return head + " 외 " + (count - 1) + "건";
   }
 
-  /**
-   * 첫 상품 옵션 요약: "BLACK/M" 형태 (COLOR/SIZE)
-   * - 없으면 "" 반환
-   */
   private String buildOptionSummary(ItemVariant v) {
     if (v == null || v.getItemVariantOptions() == null || v.getItemVariantOptions().isEmpty()) {
       return "";
@@ -203,7 +192,6 @@ public class OrderService {
     OrderItem oi = orderItemRepository.findByOrderItemIdAndOrder_User_UserId(orderItemId, userId)
         .orElseThrow(() -> new BusinessException(OrderErrorCode.ORDER_ITEM_NOT_FOUND));
 
-    // 최소 정책: 이미 취소/환불 확정이면 불가
     if (oi.getStatus() == OrderItemStatus.CANCELED
         || oi.getStatus() == OrderItemStatus.REFUNDED) {
       throw new BusinessException(OrderErrorCode.ORDER_ITEM_NOT_CANCELABLE);

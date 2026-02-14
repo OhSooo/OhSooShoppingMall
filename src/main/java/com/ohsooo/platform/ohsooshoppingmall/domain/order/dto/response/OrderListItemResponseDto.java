@@ -1,5 +1,6 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.order.dto.response;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,16 +10,10 @@ import lombok.Getter;
 public class OrderListItemResponseDto {
 
   private Long orderId;
-
   private String status;
 
-  private int totalPrice;
+  private BigDecimal totalPrice;
 
   private OffsetDateTime createdAt;
-
-  /**
-   * 목록에서 미리보기로 필요한 정도만
-   * 예: "외 2건"
-   */
   private String summary;
 }

@@ -2,6 +2,7 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.order.entity;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.entity.User;
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,11 +28,11 @@ public class Order {
   private Long orderId;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "user_id", nullable = false) // DB는 user_id 권장
+  @JoinColumn(name = "user_id", nullable = false)
   private User user;
 
-  @Column(name = "total_price", nullable = false)
-  private int totalPrice;
+  @Column(name = "total_price", nullable = false, precision = 19, scale = 2)
+  private BigDecimal totalPrice;
 
   @Enumerated(EnumType.STRING)
   @Column(name = "status", nullable = false, length = 30)
@@ -79,7 +80,7 @@ public class Order {
   ) {
     this.user = user;
     this.status = OrderStatus.CREATED;
-    this.totalPrice = 0;
+    this.totalPrice = BigDecimal.ZERO;
 
     this.receiverName = receiverName;
     this.receiverPhone = receiverPhone;
@@ -120,9 +121,12 @@ public class Order {
   }
 
   public void recalculateTotalPrice() {
-    int sum = 0;
+    BigDecimal sum = BigDecimal.ZERO;
     for (OrderItem oi : orderItems) {
-      sum += oi.getPriceAtPurchase() * oi.getQuantity();
+      // priceAtPurchase * quantity
+      sum = sum.add(
+          oi.getPriceAtPurchase().multiply(BigDecimal.valueOf(oi.getQuantity()))
+      );
     }
     this.totalPrice = sum;
   }

@@ -2,6 +2,7 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.order.entity;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariant;
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -42,17 +43,17 @@ public class OrderItem {
   @Column(name = "status", nullable = false, length = 30)
   private OrderItemStatus status;
 
-  @Column(name = "price_at_purchase", nullable = false)
-  private int priceAtPurchase;
+  @Column(name = "price_at_purchase", nullable = false, precision = 19, scale = 2)
+  private BigDecimal priceAtPurchase;
 
-  private OrderItem(ItemVariant itemVariant, int quantity, int priceAtPurchase) {
+  private OrderItem(ItemVariant itemVariant, int quantity, BigDecimal priceAtPurchase) {
     this.itemVariant = itemVariant;
     this.quantity = Math.max(quantity, 1);
-    this.priceAtPurchase = Math.max(priceAtPurchase, 0);
+    this.priceAtPurchase = (priceAtPurchase == null) ? BigDecimal.ZERO : priceAtPurchase;
     this.status = OrderItemStatus.ORDERED;
   }
 
-  public static OrderItem of(ItemVariant itemVariant, int quantity, int priceAtPurchase) {
+  public static OrderItem of(ItemVariant itemVariant, int quantity, BigDecimal priceAtPurchase) {
     return new OrderItem(itemVariant, quantity, priceAtPurchase);
   }
 
