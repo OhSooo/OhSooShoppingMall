@@ -75,6 +75,7 @@ public class StoreService {
      * - 실제 DB 삭제 없이 status 값만 변경하는 Soft Delete 구조
      */
     public void changeStatusByOwner(Long storeId, Long ownerId, StoreStatus newStatus) {
+
         Store store = getStoreEntity(storeId);
 
         // 본인 스토어 검증

@@ -7,9 +7,6 @@ import lombok.Getter;
 @Schema(description = "스토어 생성 요청 DTO")
 public class CreateStoreRequest {
 
-    @Schema(description = "스토어 소유자 ID", example = "123")
-    private Long ownerId;
-
     @Schema(description = "스토어 이름", example = "오수 전자상점")
     private String name;
 
