@@ -51,6 +51,7 @@ public class Item {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    //TODO: isdeleted와 status = DELETED는 같은 뜻
     @Column(name = "is_deleted",nullable = false)
     private boolean isDeleted;
 

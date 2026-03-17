@@ -4,9 +4,13 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.OptionR
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Item;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Option;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.OptionType;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.exception.ItemErrorCode;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.exception.OptionErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.mapper.OptionMapper;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.OptionRepository;
+import com.ohsooo.platform.ohsooshoppingmall.domain.store.exception.StoreErrorCode;
+import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,7 +31,7 @@ public class OptionService {
     // 아이템 존재 여부 확인
     private void validateItemExists(Long itemId) {
         if (!itemRepository.existsById(itemId)) {
-            throw new IllegalArgumentException("존재하지 않는 아이템입니다.");      // TODO: 예외 처리 리팩토링
+            throw new BusinessException(ItemErrorCode.ITEM_NOT_FOUND);      // TODO: 예외 처리 리팩토링
         }
     }
 
@@ -35,7 +39,7 @@ public class OptionService {
     @Transactional(readOnly = true)
     public OptionResponse findOptionById(Long id) {
         Option option = optionRepository.findById(id)
-                .orElseThrow(()-> new IllegalArgumentException("옵션을 찾을 수 없습니다"));
+                .orElseThrow(()-> new BusinessException(OptionErrorCode.OPTION_NOT_FOUND));
         return optionMapper.toResponse(option);
     }
 
@@ -82,17 +86,17 @@ public class OptionService {
 
         // 아이템 존재 여부 검사
         Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new IllegalStateException("아이템을 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(ItemErrorCode.ITEM_NOT_FOUND));
 
 
         // ownerId 일치 검사
         if (!item.getStore().getOwnerId().equals(ownerId)) {
-            throw new IllegalStateException("owner Id가 일치하지 않습니다.");
+            throw new BusinessException(StoreErrorCode.STORE_OWNER_FORBIDDEN);
         }
 
         // 중복 검사
         if (optionRepository.existsByItem_ItemIdAndTypeAndValue(itemId, type, value)) {
-            throw new IllegalStateException("이미 존재하는 옵션입니다.");
+            throw new BusinessException(OptionErrorCode.OPTION_ALREADY_EXISTS);
         }
 
         Option option = new Option(

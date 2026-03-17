@@ -2,8 +2,10 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.service;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.CategoryResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Category;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.exception.CategoryErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.mapper.CategoryMapper;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.CategoryRepository;
+import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -55,7 +57,7 @@ public class CategoryService {
     public CategoryResponse getCategoryById(Long id) {
         Category category = categoryRepository.
                 findByCategoryIdAndIsActiveTrue(id)
-                .orElseThrow(()-> new IllegalArgumentException("카테고리를 찾을 수 없습니다"));
+                .orElseThrow(()-> new BusinessException(CategoryErrorCode.CATEGORY_NOT_FOUND));
 
         return categoryMapper.toResponse(category);
     }

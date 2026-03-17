@@ -3,15 +3,20 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.service;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Category;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Item;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.exception.CategoryErrorCode;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.exception.ItemErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.mapper.ItemMapper;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.CategoryRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.Store;
+import com.ohsooo.platform.ohsooshoppingmall.domain.store.exception.StoreErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.repository.StoreRepository;
+import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +37,7 @@ public class ItemService {
     @Transactional(readOnly = true)
     public ItemResponse getItemById(Long id) {
         Item item = itemRepository.findByItemIdAndIsDeletedFalse(id)
-                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다"));
+                .orElseThrow(() -> new BusinessException(ItemErrorCode.ITEM_NOT_FOUND));
         return itemMapper.toResponse(item);
     }
 
@@ -42,7 +47,7 @@ public class ItemService {
 
         // 1. category 존재 여부 확인
         if (!categoryRepository.existsById(categoryId)) {
-            throw new IllegalArgumentException("존재하지 않는 카테고리입니다.");
+            throw new BusinessException(CategoryErrorCode.CATEGORY_NOT_FOUND);
         }
 
         // 2. 상품 조회
@@ -58,7 +63,7 @@ public class ItemService {
 
         // 1. store 존재 여부 확인
         if (!storeRepository.existsById(storeId)) {
-            throw new IllegalArgumentException("존재하지 않는 카테고리입니다.");
+            throw new BusinessException(StoreErrorCode.STORE_NOT_FOUND);
         }
 
         // 2. 상품 조회

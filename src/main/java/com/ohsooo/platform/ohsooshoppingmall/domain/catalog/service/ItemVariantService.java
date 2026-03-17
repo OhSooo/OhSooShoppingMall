@@ -5,9 +5,12 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Item;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.ItemStatus;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.ItemVariant;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.ItemVariantStatus;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.exception.ItemErrorCode;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.exception.ItemVariantErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.mapper.ItemVariantMapper;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemVariantRepository;
+import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,7 +31,7 @@ public class ItemVariantService {
     // 아이템 존재 여부 확인
     private void validateItemExists(Long itemId) {
         if (!itemRepository.existsById(itemId)) {
-            throw new IllegalArgumentException("존재하지 않는 아이템입니다.");
+            throw new BusinessException(ItemErrorCode.ITEM_NOT_FOUND);
         }
     }
 
@@ -36,7 +39,7 @@ public class ItemVariantService {
     @Transactional(readOnly = true)
     public ItemVariantResponse findById(Long id) {
         ItemVariant itemVariant = itemVariantRepository.findByItemVariantId(id)
-                .orElseThrow(()-> new IllegalArgumentException("상품 판매 단위를 찾을 수 없습니다"));
+                .orElseThrow(()-> new BusinessException(ItemVariantErrorCode.ITEM_VARIANT_NOT_FOUND));
         return itemVariantMapper.toResponse(itemVariant);
     }
 
@@ -44,7 +47,7 @@ public class ItemVariantService {
     @Transactional(readOnly = true)
     public ItemVariantResponse findBySku(String sku) {
         ItemVariant itemVariant = itemVariantRepository.findBySku(sku)
-                .orElseThrow(()-> new IllegalArgumentException("상품 판매 단위를 찾을 수 없습니다"));
+                .orElseThrow(()-> new BusinessException(ItemVariantErrorCode.ITEM_VARIANT_NOT_FOUND));
         return itemVariantMapper.toResponse(itemVariant);
     }
 
@@ -76,7 +79,7 @@ public class ItemVariantService {
 
     // 판매 가능한 variant 조회(재고 있음)
     @Transactional(readOnly = true)
-    public List<ItemVariantResponse> findBuyableVariantsByItemId(Long itemId, ItemVariantStatus status, int minQuantity) {      // 이거 함수 이름 추천 좀
+    public List<ItemVariantResponse> findBuyableVariantsByItemId(Long itemId, ItemVariantStatus status, int minQuantity) {
         // 1. 아이템 존재 여부 확인
         validateItemExists(itemId);
 

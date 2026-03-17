@@ -1,5 +1,7 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity;
 
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.exception.ItemVariantErrorCode;
+import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -40,7 +42,7 @@ public class ItemVariant {
 
     public ItemVariant(Item item, String sku, BigDecimal price, int quantity, ItemVariantStatus status) {
         if (quantity < 0) {
-            throw new IllegalArgumentException("재고 수량은 0 이상이어야 합니다.");
+            throw new BusinessException(ItemVariantErrorCode.ITEM_VARIANT_INVALID_QUANTITY);
         }
 
         this.item = item;

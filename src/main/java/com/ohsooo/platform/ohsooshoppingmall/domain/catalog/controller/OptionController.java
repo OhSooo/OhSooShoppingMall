@@ -71,9 +71,8 @@ public class OptionController {
                     - 판매자 권한이 필요합니다.
                     """
     )
-    // TODO: 판매자만 생성 가능하도록
     @PostMapping
-    public  ResponseEntity<BaseResponse<Void>>  createOption(
+    public  ResponseEntity<BaseResponse<Void>> createOption(
             @AuthenticationPrincipal Long userId,
             @RequestBody @Valid CreateOptionRequest request
     ) {
