@@ -1,6 +1,7 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.service;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.OptionResponse;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Item;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Option;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.OptionType;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.mapper.OptionMapper;
@@ -26,7 +27,7 @@ public class OptionService {
     // 아이템 존재 여부 확인
     private void validateItemExists(Long itemId) {
         if (!itemRepository.existsById(itemId)) {
-            throw new IllegalArgumentException("존재하지 않는 아이템입니다.");
+            throw new IllegalArgumentException("존재하지 않는 아이템입니다.");      // TODO: 예외 처리 리팩토링
         }
     }
 
@@ -76,13 +77,20 @@ public class OptionService {
                 itemId, type, value
         );
     }
-
-
     // 옵션 생성
-    public void createOption(Long itemId, OptionType type, String value) {
+    public void createOption(Long ownerId, Long itemId, OptionType type, String value) {
 
-        validateItemExists(itemId);
+        // 아이템 존재 여부 검사
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new IllegalStateException("아이템을 찾을 수 없습니다."));
 
+
+        // ownerId 일치 검사
+        if (!item.getStore().getOwnerId().equals(ownerId)) {
+            throw new IllegalStateException("owner Id가 일치하지 않습니다.");
+        }
+
+        // 중복 검사
         if (optionRepository.existsByItem_ItemIdAndTypeAndValue(itemId, type, value)) {
             throw new IllegalStateException("이미 존재하는 옵션입니다.");
         }
