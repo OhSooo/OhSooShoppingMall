@@ -1,7 +1,9 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.store.service;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.dto.response.StoreResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.StoreStatus;
+import com.ohsooo.platform.ohsooshoppingmall.domain.store.exception.StoreErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.mapper.StoreMapper;
+import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -40,7 +42,7 @@ public class StoreService {
     @Transactional(readOnly = true)
     public StoreResponse getStore(Long storeId) {
         Store store = storeRepository.findById(storeId)
-                .orElseThrow(() -> new IllegalArgumentException("스토어가 존재하지 않습니다"));
+                .orElseThrow(() -> new BusinessException(StoreErrorCode.STORE_NOT_FOUND));
         return storeMapper.toStoreResponse(store);
     }
 
@@ -54,7 +56,7 @@ public class StoreService {
     @Transactional(readOnly = true)
     protected Store getStoreEntity(Long storeId) {
         return storeRepository.findById(storeId)
-                .orElseThrow(() -> new IllegalArgumentException("스토어가 존재하지 않습니다"));
+                .orElseThrow(() -> new BusinessException(StoreErrorCode.STORE_NOT_FOUND));
     }
 
     /**
@@ -80,12 +82,12 @@ public class StoreService {
 
         // 본인 스토어 검증
         if (!store.getOwnerId().equals(ownerId)) {
-            throw new IllegalStateException("본인 스토어만 변경할 수 있습니다");
+            throw new BusinessException(StoreErrorCode.STORE_OWNER_FORBIDDEN);
         }
 
         // 허용 상태 제한
         if (newStatus == StoreStatus.SUSPENDED) {
-            throw new IllegalArgumentException("해당 상태로 변경할 수 없습니다");
+            throw new BusinessException(StoreErrorCode.OWNER_CANNOT_SUSPEND_STORE);
         }
 
         store.changeStatus(newStatus);
