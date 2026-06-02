@@ -72,6 +72,12 @@ public class JwtProvider {
     return value == null ? null : String.valueOf(value);
   }
 
+  /* 토큰에 저장된 role 추출*/
+  public String getRole(String token) {
+    Claims claims = parse(token).getBody();
+    return claims.get("role", String.class);
+  }
+
   /* 토큰의 유효성 확인 */
   public boolean isValid(String token) {
     try {

@@ -16,16 +16,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @RequiredArgsConstructor
-@EnableMethodSecurity // (선택) 추후 @PreAuthorize 쓰고 싶을 때 대비
 public class SecurityConfig {
 
-  private final OAuth2SuccessHandler oAuth2SuccessHandler;
-  private final JwtProvider jwtProvider;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final JwtProvider jwtProvider;
 
-  @Bean
-  public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-    JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtProvider);
+        JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtProvider);
 
     http
         // REST API + JWT 기반이면 보통 stateless
@@ -33,33 +32,56 @@ public class SecurityConfig {
 
         .csrf(csrf -> csrf.disable())
         .cors(Customizer.withDefaults())
+        http
+                .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
 
         // JWT 필터: UsernamePasswordAuthenticationFilter 앞
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 
-        .authorizeHttpRequests(auth -> auth
+                .authorizeHttpRequests(auth -> auth
 
-            // =========================
-            // 0) Swagger / OpenAPI
-            // =========================
-            .requestMatchers(
-                "/v3/api-docs/**",
-                "/swagger-ui/**",
-                "/swagger-ui.html"
-            ).permitAll()
+                        // swagger / openapi
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
 
-            // =========================
-            // 1) OAuth2 로그인 흐름
-            // =========================
-            .requestMatchers(
-                "/",
-                "/oauth2/**",
-                "/login/**"
-            ).permitAll()
+                        // auth / oauth
+                        .requestMatchers(
+                                "/",
+                                "/auth/**",
+                                "/oauth2/**",
+                                "/login/**"
+                        ).permitAll()
 
-            // =========================
-            // 2) Auth 공개 API (로그인 없이 가능)
-            // =========================
+            // ===== 공개 GET =====
+            .requestMatchers(HttpMethod.GET, "/catalog/item/**").permitAll()
+            .requestMatchers(HttpMethod.GET, "/catalog/category/**").permitAll()
+            .requestMatchers(HttpMethod.GET, "/catalog/itemVariant/**").permitAll()
+            .requestMatchers(HttpMethod.GET, "/catalog/item-variant-option/**").permitAll()
+            .requestMatchers(HttpMethod.GET, "/catalog/option/**").permitAll()
+            .requestMatchers(HttpMethod.GET, "/stores").permitAll()
+            .requestMatchers(HttpMethod.GET, "/stores/*").permitAll()
+
+            // ===== OWNER =====
+            .requestMatchers(HttpMethod.POST, "/stores").hasRole("OWNER")
+            .requestMatchers(HttpMethod.PATCH, "/stores/*/status").hasRole("OWNER")
+            .requestMatchers(HttpMethod.POST, "/catalog/option").hasRole("OWNER")
+
+            // ===== ADMIN =====
+            .requestMatchers(HttpMethod.PATCH, "/admin/stores/*/status").hasRole("ADMIN")
+
+            // 나머지
+            .anyRequest().permitAll()
+        )
+        .formLogin(form -> form.disable())
+        .oauth2Login(oauth2 -> oauth2.successHandler(oAuth2SuccessHandler));
+
+
+
             .requestMatchers(
                 "/auth/signup/local",
                 "/auth/login/local",
@@ -69,47 +91,29 @@ public class SecurityConfig {
                 "/auth/password/reset"
             ).permitAll()
 
-            // =========================
-            // 3) Auth 중 로그인 필요 API
-            // =========================
+
             .requestMatchers(
                 "/auth/logout",
                 "/auth/password"
             ).authenticated()
 
-            // =========================
-            // 4) Users (내 정보)
-            // =========================
             .requestMatchers("/users/me/**").authenticated()
 
-            // =========================
-            // 5) Cart
-            // =========================
+
             .requestMatchers("/cart/**").authenticated()
 
-            // =========================
-            // 6) Orders
-            // =========================
+
             .requestMatchers("/orders/**").authenticated()
 
-            // =========================
-            // 7) Payments / Refunds
-            // - 웹훅은 외부 PG가 호출 -> permitAll
-            // =========================
+
             .requestMatchers("/payments/webhook/**").permitAll()
             .requestMatchers("/payments/**").authenticated()
 
-            // =========================
-            // 8) Inventory
-            // - 조회(GET)는 공개(원하면 authenticated로 바꿔도 됨)
-            // - 변경(PATCH)는 OWNER/ADMIN
-            // =========================
+
             .requestMatchers(HttpMethod.GET, "/inventory/**").permitAll()
             .requestMatchers(HttpMethod.PATCH, "/inventory/**").hasAnyRole("OWNER", "ADMIN")
 
-            // =========================
-            // 9) 나머지
-            // =========================
+
             .anyRequest().permitAll()
         )
 
@@ -118,6 +122,6 @@ public class SecurityConfig {
 
         .oauth2Login(oauth2 -> oauth2.successHandler(oAuth2SuccessHandler));
 
-    return http.build();
-  }
+        return http.build();
+    }
 }

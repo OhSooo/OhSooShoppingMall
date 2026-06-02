@@ -7,6 +7,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Collections;
+import java.util.List;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -49,6 +52,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     Long userId = jwtProvider.getUserId(token);
+    if (token != null && jwtProvider.isValid(token)) {
+      Long userId = jwtProvider.getUserId(token);
+      String role = jwtProvider.getRole(token);
 
     // role 클레임을 authorities로 주입 (hasRole/hasAnyRole과 호환되게 ROLE_ prefix 필수)
     List<GrantedAuthority> authorities = new ArrayList<>();
@@ -61,6 +67,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     UsernamePasswordAuthenticationToken auth =
         new UsernamePasswordAuthenticationToken(userId, null, authorities);
+      UsernamePasswordAuthenticationToken auth =
+          new UsernamePasswordAuthenticationToken(userId, null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
 
     SecurityContextHolder.getContext().setAuthentication(auth);
 

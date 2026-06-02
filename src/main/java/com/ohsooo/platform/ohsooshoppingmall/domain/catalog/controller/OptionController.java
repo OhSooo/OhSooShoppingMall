@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -70,12 +71,13 @@ public class OptionController {
                     - 판매자 권한이 필요합니다.
                     """
     )
-    // TODO: 판매자만 생성 가능하도록
     @PostMapping
-    public  ResponseEntity<BaseResponse<Void>>  createOption(
+    public  ResponseEntity<BaseResponse<Void>> createOption(
+            @AuthenticationPrincipal Long userId,
             @RequestBody @Valid CreateOptionRequest request
     ) {
         optionService.createOption(
+                userId,
                 request.getItemId(),
                 request.getType(),
                 request.getValue()
