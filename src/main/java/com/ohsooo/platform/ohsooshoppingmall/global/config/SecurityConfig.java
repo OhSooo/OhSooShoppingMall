@@ -24,104 +24,126 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-        JwtAuthenticationFilter jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtProvider);
+        JwtAuthenticationFilter jwtAuthenticationFilter =
+            new JwtAuthenticationFilter(jwtProvider);
 
-    http
-        // REST API + JWT 기반이면 보통 stateless
-        .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-        .csrf(csrf -> csrf.disable())
-        .cors(Customizer.withDefaults())
         http
-                .csrf(csrf -> csrf.disable())
-                .cors(Customizer.withDefaults())
+            .sessionManagement(sm ->
+                sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-        // JWT 필터: UsernamePasswordAuthenticationFilter 앞
-        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .csrf(csrf -> csrf.disable())
+            .cors(Customizer.withDefaults())
 
-                .authorizeHttpRequests(auth -> auth
+            .addFilterBefore(
+                jwtAuthenticationFilter,
+                UsernamePasswordAuthenticationFilter.class
+            )
 
-                        // swagger / openapi
-                        .requestMatchers(
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html"
-                        ).permitAll()
+            .authorizeHttpRequests(auth -> auth
 
-                        // auth / oauth
-                        .requestMatchers(
-                                "/",
-                                "/auth/**",
-                                "/oauth2/**",
-                                "/login/**"
-                        ).permitAll()
+                // swagger
+                .requestMatchers(
+                    "/v3/api-docs/**",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html"
+                ).permitAll()
 
-            // ===== 공개 GET =====
-            .requestMatchers(HttpMethod.GET, "/catalog/item/**").permitAll()
-            .requestMatchers(HttpMethod.GET, "/catalog/category/**").permitAll()
-            .requestMatchers(HttpMethod.GET, "/catalog/itemVariant/**").permitAll()
-            .requestMatchers(HttpMethod.GET, "/catalog/item-variant-option/**").permitAll()
-            .requestMatchers(HttpMethod.GET, "/catalog/option/**").permitAll()
-            .requestMatchers(HttpMethod.GET, "/stores").permitAll()
-            .requestMatchers(HttpMethod.GET, "/stores/*").permitAll()
+                // oauth
+                .requestMatchers(
+                    "/",
+                    "/auth/**",
+                    "/oauth2/**",
+                    "/login/**"
+                ).permitAll()
 
-            // ===== OWNER =====
-            .requestMatchers(HttpMethod.POST, "/stores").hasRole("OWNER")
-            .requestMatchers(HttpMethod.PATCH, "/stores/*/status").hasRole("OWNER")
-            .requestMatchers(HttpMethod.POST, "/catalog/option").hasRole("OWNER")
+                // auth
+                .requestMatchers(
+                    "/auth/signup/local",
+                    "/auth/login/local",
+                    "/auth/token/reissue",
+                    "/auth/email/verification/send",
+                    "/auth/email/verification/confirm",
+                    "/auth/password/reset"
+                ).permitAll()
 
-            // ===== ADMIN =====
-            .requestMatchers(HttpMethod.PATCH, "/admin/stores/*/status").hasRole("ADMIN")
+                .requestMatchers(
+                    "/auth/logout",
+                    "/auth/password"
+                ).authenticated()
 
-            // 나머지
-            .anyRequest().permitAll()
-        )
-        .formLogin(form -> form.disable())
-        .oauth2Login(oauth2 -> oauth2.successHandler(oAuth2SuccessHandler));
+                // user
+                .requestMatchers("/users/me/**")
+                .authenticated()
 
+                // cart
+                .requestMatchers("/cart/**")
+                .authenticated()
 
+                // order
+                .requestMatchers("/orders/**")
+                .authenticated()
 
-            .requestMatchers(
-                "/auth/signup/local",
-                "/auth/login/local",
-                "/auth/token/reissue",
-                "/auth/email/verification/send",
-                "/auth/email/verification/confirm",
-                "/auth/password/reset"
-            ).permitAll()
+                // payment
+                .requestMatchers("/payments/webhook/**")
+                .permitAll()
 
+                .requestMatchers("/payments/**")
+                .authenticated()
 
-            .requestMatchers(
-                "/auth/logout",
-                "/auth/password"
-            ).authenticated()
+                // inventory
+                .requestMatchers(HttpMethod.GET, "/inventory/**")
+                .permitAll()
 
-            .requestMatchers("/users/me/**").authenticated()
+                .requestMatchers(HttpMethod.PATCH, "/inventory/**")
+                .hasAnyRole("OWNER", "ADMIN")
 
+                // catalog
+                .requestMatchers(HttpMethod.GET, "/catalog/item/**")
+                .permitAll()
 
-            .requestMatchers("/cart/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/catalog/category/**")
+                .permitAll()
 
+                .requestMatchers(HttpMethod.GET, "/catalog/itemVariant/**")
+                .permitAll()
 
-            .requestMatchers("/orders/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/catalog/item-variant-option/**")
+                .permitAll()
 
+                .requestMatchers(HttpMethod.GET, "/catalog/option/**")
+                .permitAll()
 
-            .requestMatchers("/payments/webhook/**").permitAll()
-            .requestMatchers("/payments/**").authenticated()
+                // store
+                .requestMatchers(HttpMethod.GET, "/stores")
+                .permitAll()
 
+                .requestMatchers(HttpMethod.GET, "/stores/*")
+                .permitAll()
 
-            .requestMatchers(HttpMethod.GET, "/inventory/**").permitAll()
-            .requestMatchers(HttpMethod.PATCH, "/inventory/**").hasAnyRole("OWNER", "ADMIN")
+                // OWNER
+                .requestMatchers(HttpMethod.POST, "/stores")
+                .hasRole("OWNER")
 
+                .requestMatchers(HttpMethod.PATCH, "/stores/*/status")
+                .hasRole("OWNER")
 
-            .anyRequest().permitAll()
-        )
+                .requestMatchers(HttpMethod.POST, "/catalog/option")
+                .hasRole("OWNER")
 
-        .formLogin(form -> form.disable())
-        .httpBasic(basic -> basic.disable())
+                // ADMIN
+                .requestMatchers(HttpMethod.PATCH, "/admin/stores/*/status")
+                .hasRole("ADMIN")
 
-        .oauth2Login(oauth2 -> oauth2.successHandler(oAuth2SuccessHandler));
+                .anyRequest().permitAll()
+            )
+
+            .formLogin(form -> form.disable())
+            .httpBasic(basic -> basic.disable())
+
+            .oauth2Login(oauth2 ->
+                oauth2.successHandler(oAuth2SuccessHandler));
 
         return http.build();
     }
+
 }
