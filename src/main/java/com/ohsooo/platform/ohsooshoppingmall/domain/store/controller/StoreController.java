@@ -7,6 +7,7 @@ import com.ohsooo.platform.ohsooshoppingmall.global.response.BaseResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.Store;
@@ -26,17 +27,17 @@ public class StoreController {
         this.storeService = storeService;
     }
 
-    // TODO: ROLE_ADMIN 사용자만 스토어 생성 가능하도록 권한 체크 추가
     @Operation(
             summary = "스토어 생성",
             description = "관리자가 새로운 스토어를 생성합니다"
     )
     @PostMapping
     public ResponseEntity<BaseResponse<StoreResponse>> createStore(
+            @AuthenticationPrincipal Long userId,
             @RequestBody CreateStoreRequest request
     ) {
         StoreResponse response = storeService.createStore(
-                request.getOwnerId(),
+                userId,
                 request.getName(),
                 request.getDescription()
         );
@@ -79,11 +80,11 @@ public class StoreController {
     )
     @PatchMapping("/{storeId}/status")
     public ResponseEntity<Void> changeStatus(
+            @AuthenticationPrincipal Long userId,
             @PathVariable Long storeId,
             @RequestBody StoreStatusChangeRequest request
     ) {
-        Long ownerId = 1L; // TODO: JWT에서 추출
-        storeService.changeStatusByOwner(storeId, ownerId, request.getStatus());
+        storeService.changeStatusByOwner(storeId, userId, request.getStatus());
         return ResponseEntity.noContent().build();
     }
 }
