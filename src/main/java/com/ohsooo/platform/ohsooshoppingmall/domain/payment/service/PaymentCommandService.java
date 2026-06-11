@@ -10,6 +10,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.payment.dto.response.Payment
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.dto.response.PaymentCreateResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.Payment;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.enums.PaymentEventType;
+import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.enums.PaymentStatus;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.exception.PaymentErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.mapper.PaymentMapper;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.PgClientRouter;
@@ -22,6 +23,7 @@ import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -60,6 +62,13 @@ public class PaymentCommandService {
     orderRepository.findByOrderIdAndUser_UserId(request.getOrderId(), userId)
         .orElseThrow(() -> new BusinessException(OrderErrorCode.ORDER_NOT_FOUND));
 
+    // [P-2] 동일 주문에 READY/CAPTURED 결제가 이미 있으면 중복 생성 방지
+    if (paymentRepository.existsByOrderIdAndStatusIn(
+        request.getOrderId(),
+        List.of(PaymentStatus.READY, PaymentStatus.CAPTURED))) {
+      throw new BusinessException(PaymentErrorCode.DUPLICATE_PAYMENT);
+    }
+
     Payment payment = paymentMapper.toReadyPaymentEntity(request);
     Payment saved = paymentRepository.save(payment);
 
@@ -76,7 +85,8 @@ public class PaymentCommandService {
     if (paymentId == null) throw new BusinessException(PaymentErrorCode.PAYMENT_NOT_FOUND);
     if (request == null) throw new BusinessException(PaymentErrorCode.PAYMENT_NOT_FOUND);
 
-    Payment payment = paymentRepository.findById(paymentId)
+    // [P-3] 동시 confirm 요청 방어 — 비관적 쓰기 락으로 조회
+    Payment payment = paymentRepository.findByIdWithLock(paymentId)
         .orElseThrow(() -> new BusinessException(PaymentErrorCode.PAYMENT_NOT_FOUND));
 
     // 주문 소유 검증
