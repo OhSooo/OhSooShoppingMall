@@ -21,4 +21,16 @@ public class RefundValidator {
       throw new BusinessException(PaymentErrorCode.INVALID_REFUND_AMOUNT);
     }
   }
+
+  /** 환불 요청액이 잔여 환불 가능 금액을 초과하지 않는지 검증 (P-8) */
+  public void validateRefundableAmount(
+      BigDecimal requestAmount,
+      BigDecimal paymentAmount,
+      BigDecimal alreadyRefunded
+  ) {
+    BigDecimal remaining = paymentAmount.subtract(alreadyRefunded);
+    if (requestAmount.compareTo(remaining) > 0) {
+      throw new BusinessException(PaymentErrorCode.REFUND_ITEM_EXCEEDS_ALLOWABLE);
+    }
+  }
 }

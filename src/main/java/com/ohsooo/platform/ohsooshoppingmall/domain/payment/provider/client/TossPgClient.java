@@ -3,7 +3,9 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.client;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.exception.PaymentErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.config.PgProperties;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.pgdto.request.TossApproveRequest;
+import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.pgdto.request.TossCancelRequest;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.pgdto.response.TossApproveResponse;
+import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.pgdto.response.TossCancelResponse;
 import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -45,6 +47,25 @@ public class TossPgClient implements PgClient {
 
     } catch (RestClientResponseException e) {
       // 토스에서 내려준 에러 응답을 로그로 남기고 싶으면 여기서 e.getResponseBodyAsString() 활용
+      throw new BusinessException(PaymentErrorCode.PG_API_CALL_FAILED, e);
+    } catch (Exception e) {
+      throw new BusinessException(PaymentErrorCode.PG_API_CALL_FAILED, e);
+    }
+  }
+
+  @Override
+  public TossCancelResponse cancel(String pgPaymentKey, TossCancelRequest request) {
+    try {
+      return tossRestClient
+          .post()
+          .uri("/v1/payments/{paymentKey}/cancel", pgPaymentKey)
+          .contentType(MediaType.APPLICATION_JSON)
+          .header(HttpHeaders.AUTHORIZATION, buildBasicAuth(pgProperties.getToss().getSecretKey()))
+          .body(request)
+          .retrieve()
+          .body(TossCancelResponse.class);
+
+    } catch (RestClientResponseException e) {
       throw new BusinessException(PaymentErrorCode.PG_API_CALL_FAILED, e);
     } catch (Exception e) {
       throw new BusinessException(PaymentErrorCode.PG_API_CALL_FAILED, e);

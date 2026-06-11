@@ -116,6 +116,16 @@ public class Payment extends BaseTimeEntity {
   }
 
   /**
+   * 환불 완료 처리 (전액 환불 시).
+   */
+  public void markRefunded() {
+    if (this.status != PaymentStatus.CAPTURED) {
+      throw new IllegalStateException("Payment cannot be refunded from status: " + this.status);
+    }
+    this.status = PaymentStatus.REFUNDED;
+  }
+
+  /**
    * 결제 실패 처리.
    */
   public void markFailed(String reason) {
