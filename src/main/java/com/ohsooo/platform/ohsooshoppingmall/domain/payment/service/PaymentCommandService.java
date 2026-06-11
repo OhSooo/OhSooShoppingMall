@@ -1,6 +1,7 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.payment.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ohsooo.platform.ohsooshoppingmall.domain.order.entity.Order;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.exception.OrderErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.repository.OrderRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.dto.request.PaymentConfirmRequestDto;
@@ -144,6 +145,11 @@ public class PaymentCommandService {
           resp.getTransactionKey(),
           approvedAt
       );
+
+      // 결제 확정 시 Order 상태를 PAID로 업데이트 (P-1 / O-5)
+      Order order = orderRepository.findById(payment.getOrderId())
+          .orElseThrow(() -> new BusinessException(OrderErrorCode.ORDER_NOT_FOUND));
+      order.markPaid();
 
       // 승인 성공 이벤트 기록
       paymentEventService.saveEvent(payment, PaymentEventType.WEBHOOK_APPROVED, safeJson(resp));

@@ -120,6 +120,13 @@ public class Order {
     this.status = status;
   }
 
+  public void markPaid() {
+    if (this.status != OrderStatus.CREATED) {
+      throw new IllegalStateException("Order cannot be marked as PAID from status: " + this.status);
+    }
+    this.status = OrderStatus.PAID;
+  }
+
   public void recalculateTotalPrice() {
     BigDecimal sum = BigDecimal.ZERO;
     for (OrderItem oi : orderItems) {
