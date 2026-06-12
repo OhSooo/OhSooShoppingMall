@@ -90,4 +90,17 @@ public class OrderController {
     OrderItemResponseDto response = orderService.requestCancelOrderItem(userId, orderItemId, request);
     return ResponseEntity.ok(BaseResponse.success("주문 상품 취소 요청 완료", response));
   }
+
+  @Operation(
+      summary = "주문 상품 취소 확정",
+      description = "CANCEL_REQUESTED 상태인 주문 상품을 CANCELED로 확정하고 재고를 복원합니다."
+  )
+  @PostMapping("/items/{orderItemId}/cancel/confirm")
+  public ResponseEntity<BaseResponse<OrderItemResponseDto>> confirmCancelOrderItem(
+      @AuthenticationPrincipal Long userId,
+      @PathVariable Long orderItemId
+  ) {
+    OrderItemResponseDto response = orderService.confirmCancelOrderItem(userId, orderItemId);
+    return ResponseEntity.ok(BaseResponse.success("주문 상품 취소 확정 완료", response));
+  }
 }

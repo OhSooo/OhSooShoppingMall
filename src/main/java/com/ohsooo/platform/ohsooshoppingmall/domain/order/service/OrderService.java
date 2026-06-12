@@ -29,6 +29,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.order.entity.OrderChangedBy;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.entity.OrderItem;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.entity.OrderItemHistory;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.entity.OrderItemStatus;
+import com.ohsooo.platform.ohsooshoppingmall.domain.order.entity.OrderStatus;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.exception.OrderErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.mapper.OrderMapper;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.repository.OrderItemHistoryRepository;
@@ -156,6 +157,37 @@ public class OrderService {
     return orderMapper.toOrderItemResponseDto(oi);
   }
 
+  /** 주문 상품 취소 확정 (CANCEL_REQUESTED → CANCELED + 재고 복원) */
+  public OrderItemResponseDto confirmCancelOrderItem(Long userId, Long orderItemId) {
+    if (userId == null) throw new BusinessException(OrderErrorCode.AUTH_PRINCIPAL_MISSING);
+
+    OrderItem oi = orderItemRepository.findByOrderItemIdAndOrder_User_UserId(orderItemId, userId)
+        .orElseThrow(() -> new BusinessException(OrderErrorCode.ORDER_ITEM_NOT_FOUND));
+
+    if (oi.getStatus() != OrderItemStatus.CANCEL_REQUESTED) {
+      throw new BusinessException(OrderErrorCode.ORDER_ITEM_NOT_CANCELABLE);
+    }
+
+    OrderItemStatus prev = oi.getStatus();
+    oi.changeStatus(OrderItemStatus.CANCELED);
+
+    inventoryService.increaseStock(oi.getItemVariant().getItemVariantId(), oi.getQuantity());
+
+    OrderItemHistory history = OrderItemHistory.create(oi, prev, oi.getStatus(), OrderChangedBy.GENERAL);
+    orderItemHistoryRepository.save(history);
+
+    Order order = oi.getOrder();
+    if (order.getStatus() == OrderStatus.CREATED) {
+      boolean allCanceled = order.getOrderItems().stream()
+          .allMatch(item -> item.getStatus() == OrderItemStatus.CANCELED);
+      if (allCanceled) {
+        order.changeStatus(OrderStatus.CANCELED);
+      }
+    }
+
+    return orderMapper.toOrderItemResponseDto(oi);
+  }
+
   // -------------------------
   // private helpers
   // -------------------------
@@ -172,9 +204,9 @@ public class OrderService {
     for (CartItem ci : cart.getCartItems()) {
       ItemVariant variant = ci.getItemVariant();
       int qty = ci.getQuantity();
-      inventoryService.decreaseStock(variant.getItemVariantId(), qty);
       result.add(OrderItem.of(variant, qty, variant.getPrice()));
     }
+    cart.clear();
     return result;
   }
 
@@ -193,15 +225,17 @@ public class OrderService {
     Set<Long> targets = new HashSet<>(cartItemIds);
 
     List<OrderItem> result = new ArrayList<>();
+    List<Long> variantIdsToRemove = new ArrayList<>();
     for (CartItem ci : cart.getCartItems()) {
       if (!targets.contains(ci.getCartItemId())) continue;
       ItemVariant variant = ci.getItemVariant();
       int qty = ci.getQuantity();
-      inventoryService.decreaseStock(variant.getItemVariantId(), qty);
       result.add(OrderItem.of(variant, qty, variant.getPrice()));
+      variantIdsToRemove.add(variant.getItemVariantId());
     }
 
     if (result.isEmpty()) throw new BusinessException(OrderErrorCode.INVALID_CART_ITEM_IDS);
+    variantIdsToRemove.forEach(cart::removeItemByVariantId);
     return result;
   }
 
@@ -216,7 +250,6 @@ public class OrderService {
     for (OrderItemCreateRequestDto dto : items) {
       ItemVariant variant = itemVariantRepository.findById(dto.getItemVariantId())
           .orElseThrow(() -> new BusinessException(CatalogErrorCode.ITEM_VARIANT_NOT_FOUND));
-      inventoryService.decreaseStock(variant.getItemVariantId(), dto.getQuantity());
       result.add(OrderItem.of(variant, dto.getQuantity(), variant.getPrice()));
     }
     return result;
