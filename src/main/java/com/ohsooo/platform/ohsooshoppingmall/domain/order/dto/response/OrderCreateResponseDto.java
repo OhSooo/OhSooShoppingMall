@@ -12,8 +12,10 @@ public class OrderCreateResponseDto {
   private Long orderId;
   private String status;
 
-  /** 총 결제 예정 금액 */
-  private BigDecimal totalPrice;
+  private BigDecimal originalTotalPrice;
+  private BigDecimal discountAmount;
+  private BigDecimal deliveryFee;
+  private BigDecimal finalPrice;
 
   private List<OrderItemResponseDto> items;
   private String paymentRedirectHint;

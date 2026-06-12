@@ -15,6 +15,9 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.exception.User
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.repository.UserRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.inventory.service.InventoryService;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.dto.request.OrderCreateRequestDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.pricing.dto.PricingLineItem;
+import com.ohsooo.platform.ohsooshoppingmall.domain.pricing.dto.PricingResult;
+import com.ohsooo.platform.ohsooshoppingmall.domain.pricing.service.PricingService;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.dto.request.OrderItemCancelRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.dto.request.OrderItemCreateRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.dto.response.OrderCreateResponseDto;
@@ -36,6 +39,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,6 +58,7 @@ public class OrderService {
   private final ItemVariantRepository itemVariantRepository;
 
   private final InventoryService inventoryService;
+  private final PricingService pricingService;
   private final OrderMapper orderMapper;
   private final OrderValidator orderValidator;
 
@@ -76,11 +81,16 @@ public class OrderService {
 
     if (orderItems.isEmpty()) throw new BusinessException(OrderErrorCode.EMPTY_ORDER_ITEMS);
 
+    List<PricingLineItem> lineItems = orderItems.stream()
+        .map(oi -> new PricingLineItem(oi.getItemVariant(), oi.getQuantity()))
+        .toList();
+    PricingResult pricing = pricingService.calculate(lineItems);
+
     Order order = orderMapper.toOrderEntity(user, request);
     for (OrderItem oi : orderItems) {
       order.addOrderItem(oi);
     }
-    order.recalculateTotalPrice();
+    order.applyPricing(pricing);
 
     Order saved = orderRepository.save(order);
     return orderMapper.toCreateResponseDto(saved);
@@ -98,7 +108,7 @@ public class OrderService {
       result.add(new OrderListItemResponseDto(
           o.getOrderId(),
           o.getStatus().name(),
-          o.getTotalPrice(),
+          o.getFinalPrice(),
           o.getCreatedAt(),
           buildOrderSummary(o)
       ));

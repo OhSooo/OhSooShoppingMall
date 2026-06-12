@@ -12,7 +12,7 @@ public class OrderListItemResponseDto {
   private Long orderId;
   private String status;
 
-  private BigDecimal totalPrice;
+  private BigDecimal finalPrice;
 
   private OffsetDateTime createdAt;
   private String summary;

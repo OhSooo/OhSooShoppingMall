@@ -58,9 +58,13 @@ public class PaymentCommandService {
     // (선택) KRW 정수 정책 검증까지 하고 싶으면 열어도 됨
     // toKrwIntegerAmount(request.getAmount());
 
-    // 주문 소유 검증
-    orderRepository.findByOrderIdAndUser_UserId(request.getOrderId(), userId)
+    // 주문 소유 검증 + finalPrice 위변조 방지
+    Order order = orderRepository.findByOrderIdAndUser_UserId(request.getOrderId(), userId)
         .orElseThrow(() -> new BusinessException(OrderErrorCode.ORDER_NOT_FOUND));
+
+    if (request.getAmount().compareTo(order.getFinalPrice()) != 0) {
+      throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_AMOUNT);
+    }
 
     // [P-2] 동일 주문에 READY/CAPTURED 결제가 이미 있으면 중복 생성 방지
     if (paymentRepository.existsByOrderIdAndStatusIn(
