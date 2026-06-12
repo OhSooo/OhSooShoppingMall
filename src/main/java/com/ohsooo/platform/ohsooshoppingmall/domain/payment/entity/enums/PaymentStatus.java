@@ -11,6 +11,7 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.enums;
  */
 public enum PaymentStatus {
   READY,        // 결제 시도 시작 (결제창 진행 중 포함)
+  CONFIRMING,  // PG API 호출 중 (트랜잭션 밖에서 진행 — 중복 confirm 방지용 중간 상태)
   AUTHORIZED,  // 승인 완료, 아직 매입 전 (선택적 사용)
   CAPTURED,    // 결제 확정 (돈이 실제로 빠져나감)
   FAILED,      // 결제 실패

@@ -76,7 +76,7 @@ public class Payment extends BaseTimeEntity {
   @Column(name = "failed_at")
   private OffsetDateTime failedAt;
 
-  @Column(name = "fail_reason", length = 255)
+  @Column(name = "fail_reason", length = 2000)
   private String failReason;
 
   /**
@@ -101,10 +101,23 @@ public class Payment extends BaseTimeEntity {
   }
 
   /**
+   * PG API 호출 직전 상태 전환. 트랜잭션 커밋 후 커넥션을 반환하고 API를 호출하는 P-4 패턴에서 사용.
+   * CONFIRMING 상태에서 다른 confirm 요청이 오면 validateConfirmable에서 차단됨.
+   */
+  public void markConfirming() {
+    if (this.status != PaymentStatus.READY) {
+      throw new IllegalStateException("Payment cannot be marked confirming from status: " + this.status);
+    }
+    this.status = PaymentStatus.CONFIRMING;
+  }
+
+  /**
    * 결제 승인(또는 승인+캡처) 성공 시 상태 변경.
    */
   public void markCaptured(String pgPaymentKey, String pgTransactionId, OffsetDateTime approvedAt) {
-    if (this.status != PaymentStatus.READY && this.status != PaymentStatus.AUTHORIZED) {
+    if (this.status != PaymentStatus.READY
+        && this.status != PaymentStatus.CONFIRMING
+        && this.status != PaymentStatus.AUTHORIZED) {
       throw new IllegalStateException("Payment cannot be captured from status: " + this.status);
     }
     this.status = PaymentStatus.CAPTURED;

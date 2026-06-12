@@ -2,7 +2,7 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.client;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.pgdto.request.TossApproveRequest;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.pgdto.request.TossCancelRequest;
-import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.pgdto.response.TossApproveResponse;
+import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.pgdto.response.PgApproveResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.pgdto.response.TossCancelResponse;
 
 /**
@@ -13,7 +13,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.pgdto.respo
  */
 public interface PgClient {
 
-  TossApproveResponse approve(TossApproveRequest request);
+  PgApproveResponse approve(TossApproveRequest request);
 
   TossCancelResponse cancel(String pgPaymentKey, TossCancelRequest request);
 }

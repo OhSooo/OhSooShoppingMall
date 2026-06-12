@@ -4,6 +4,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.payment.exception.PaymentErr
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.config.PgProperties;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.pgdto.request.TossApproveRequest;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.pgdto.request.TossCancelRequest;
+import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.pgdto.response.PgApproveResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.pgdto.response.TossApproveResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.pgdto.response.TossCancelResponse;
 import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
@@ -34,7 +35,7 @@ public class TossPgClient implements PgClient {
   private final PgProperties pgProperties;
 
   @Override
-  public TossApproveResponse approve(TossApproveRequest request) {
+  public PgApproveResponse approve(TossApproveRequest request) {
     try {
       return tossRestClient
           .post()

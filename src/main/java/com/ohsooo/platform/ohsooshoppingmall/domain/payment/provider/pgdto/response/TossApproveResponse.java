@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
  */
 @Getter
 @NoArgsConstructor
-public class TossApproveResponse {
+public class TossApproveResponse implements PgApproveResponse {
 
   /**
    * 토스 결제키 (요청의 paymentKey와 동일한 값으로 오는 경우가 많음)
