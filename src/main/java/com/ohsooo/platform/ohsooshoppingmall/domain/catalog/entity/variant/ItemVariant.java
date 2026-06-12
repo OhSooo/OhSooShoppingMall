@@ -1,7 +1,19 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Item;
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
@@ -30,9 +42,6 @@ public class ItemVariant {
   @Column(nullable = false, precision = 12, scale = 2)
   private BigDecimal price;
 
-  @Column(nullable = false)
-  private int quantity;
-
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
   private ItemVariantStatus status;
@@ -45,43 +54,25 @@ public class ItemVariant {
   )
   private Set<ItemVariantOption> itemVariantOptions = new HashSet<>();
 
-  public ItemVariant(Item item, String sku, BigDecimal price, int quantity) {
+  public ItemVariant(Item item, String sku, BigDecimal price) {
     this.item = item;
     this.sku = sku;
     this.price = price;
-    this.quantity = quantity;
-    this.status = (quantity > 0) ? ItemVariantStatus.ACTIVE : ItemVariantStatus.OUT_OF_STOCK;
+    this.status = ItemVariantStatus.ACTIVE;
   }
 
-  // (1) 스토어 관리자가 재고 입고 처리 시 (2) 취소/환불 등으로 재고가 복원 될 때 호출됨.
-  public void increaseQuantity(int amount) {
-    if (amount <= 0) return;
-    this.quantity += amount;
-    if (this.quantity > 0 && this.status == ItemVariantStatus.OUT_OF_STOCK) {
-      this.status = ItemVariantStatus.ACTIVE;
-    }
+  // Inventory 수량 변경 후 상태를 동기화한다. DISABLED 상태는 재고와 무관하게 유지된다.
+  public void syncStatus(int currentQuantity) {
+    if (this.status == ItemVariantStatus.DISABLED) return;
+    this.status = (currentQuantity > 0) ? ItemVariantStatus.ACTIVE : ItemVariantStatus.OUT_OF_STOCK;
   }
 
-  public void decreaseQuantity(int amount) {
-    if (amount <= 0) return;
-    int next = this.quantity - amount;
-    if (next < 0) {
-      throw new IllegalArgumentException("Insufficient stock");
-    }
-    this.quantity = next;
-    if (this.quantity == 0) {
-      this.status = ItemVariantStatus.OUT_OF_STOCK;
-    }
-  }
-
-  // 판매 중지 처리
   public void disable() {
     this.status = ItemVariantStatus.DISABLED;
   }
 
-  // 판매 재개 처리
-  public void enable() {
-    if (this.quantity > 0) this.status = ItemVariantStatus.ACTIVE;
-    else this.status = ItemVariantStatus.OUT_OF_STOCK;
+  // DISABLED 해제 시 현재 재고를 기준으로 상태를 복원한다.
+  public void enable(int currentQuantity) {
+    this.status = (currentQuantity > 0) ? ItemVariantStatus.ACTIVE : ItemVariantStatus.OUT_OF_STOCK;
   }
 }
