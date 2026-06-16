@@ -1,0 +1,1 @@
+ALTER TABLE payments ALTER COLUMN fail_reason TYPE VARCHAR(2000);

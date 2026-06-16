@@ -8,17 +8,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class ItemVariantMapper {
 
-    public ItemVariantResponse toResponse(ItemVariant itemVariant) {
-        Item item = itemVariant.getItem();
+  public ItemVariantResponse toResponse(ItemVariant itemVariant) {
+    Item item = itemVariant.getItem();
 
-        return new ItemVariantResponse(
-            itemVariant.getItemVariantId(),
-            item.getItemId(),
-            item.getName(),
-            itemVariant.getSku(),
-            itemVariant.getPrice(),
-            itemVariant.getQuantity(),
-            itemVariant.getStatus()
-        );
-    }
+    return new ItemVariantResponse(
+        itemVariant.getItemVariantId(),
+        item.getItemId(),
+        item.getName(),
+        itemVariant.getSku(),
+        itemVariant.getPrice(),
+        itemVariant.getStatus()
+    );
+  }
 }

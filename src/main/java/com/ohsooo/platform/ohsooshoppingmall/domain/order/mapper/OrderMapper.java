@@ -49,7 +49,10 @@ public class OrderMapper {
     return new OrderCreateResponseDto(
         order.getOrderId(),
         order.getStatus().name(),
-        order.getTotalPrice(),
+        order.getOriginalTotalPrice(),
+        order.getDiscountAmount(),
+        order.getDeliveryFee(),
+        order.getFinalPrice(),
         items,
         null
     );
@@ -69,7 +72,10 @@ public class OrderMapper {
         order.getOrderId(),
         (order.getUser() != null ? order.getUser().getUserId() : null),
         order.getStatus().name(),
-        order.getTotalPrice(),
+        order.getOriginalTotalPrice(),
+        order.getDiscountAmount(),
+        order.getDeliveryFee(),
+        order.getFinalPrice(),
         order.getCreatedAt(),
         order.getUpdatedAt(),
         shipping,

@@ -30,6 +30,7 @@ public enum PaymentErrorCode implements BaseErrorCode {
   PAYMENT_ALREADY_FAILED(HttpStatus.CONFLICT, "PAYMENT_4093", "이미 실패 처리된 결제입니다."),
   PAYMENT_NOT_CANCELABLE(HttpStatus.CONFLICT, "PAYMENT_4094", "현재 상태에서는 결제 취소가 불가능합니다."),
   PAYMENT_NOT_REFUNDABLE(HttpStatus.CONFLICT, "PAYMENT_4095", "현재 상태에서는 환불이 불가능합니다."),
+  DUPLICATE_PAYMENT(HttpStatus.CONFLICT, "PAYMENT_4098", "해당 주문에 대한 결제가 이미 존재합니다."),
 
   // 환불 정책
   REFUND_ALREADY_PROCESSED(HttpStatus.CONFLICT, "PAYMENT_4096", "이미 처리된 환불 요청입니다."),

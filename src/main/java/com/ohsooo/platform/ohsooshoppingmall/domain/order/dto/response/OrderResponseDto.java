@@ -14,7 +14,10 @@ public class OrderResponseDto {
   private Long userId;
   private String status;
 
-  private BigDecimal totalPrice;
+  private BigDecimal originalTotalPrice;
+  private BigDecimal discountAmount;
+  private BigDecimal deliveryFee;
+  private BigDecimal finalPrice;
 
   private OffsetDateTime createdAt;
   private OffsetDateTime updatedAt;

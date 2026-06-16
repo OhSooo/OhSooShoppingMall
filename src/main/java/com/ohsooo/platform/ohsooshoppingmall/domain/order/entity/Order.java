@@ -1,6 +1,7 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.order.entity;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.entity.User;
+import com.ohsooo.platform.ohsooshoppingmall.domain.pricing.dto.PricingResult;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -31,8 +32,17 @@ public class Order {
   @JoinColumn(name = "user_id", nullable = false)
   private User user;
 
-  @Column(name = "total_price", nullable = false, precision = 19, scale = 2)
-  private BigDecimal totalPrice;
+  @Column(name = "original_total_price", nullable = false, precision = 19, scale = 2)
+  private BigDecimal originalTotalPrice;
+
+  @Column(name = "discount_amount", nullable = false, precision = 19, scale = 2)
+  private BigDecimal discountAmount;
+
+  @Column(name = "delivery_fee", nullable = false, precision = 19, scale = 2)
+  private BigDecimal deliveryFee;
+
+  @Column(name = "final_price", nullable = false, precision = 19, scale = 2)
+  private BigDecimal finalPrice;
 
   @Enumerated(EnumType.STRING)
   @Column(name = "status", nullable = false, length = 30)
@@ -80,7 +90,10 @@ public class Order {
   ) {
     this.user = user;
     this.status = OrderStatus.CREATED;
-    this.totalPrice = BigDecimal.ZERO;
+    this.originalTotalPrice = BigDecimal.ZERO;
+    this.discountAmount = BigDecimal.ZERO;
+    this.deliveryFee = BigDecimal.ZERO;
+    this.finalPrice = BigDecimal.ZERO;
 
     this.receiverName = receiverName;
     this.receiverPhone = receiverPhone;
@@ -120,15 +133,18 @@ public class Order {
     this.status = status;
   }
 
-  public void recalculateTotalPrice() {
-    BigDecimal sum = BigDecimal.ZERO;
-    for (OrderItem oi : orderItems) {
-      // priceAtPurchase * quantity
-      sum = sum.add(
-          oi.getPriceAtPurchase().multiply(BigDecimal.valueOf(oi.getQuantity()))
-      );
+  public void markPaid() {
+    if (this.status != OrderStatus.CREATED) {
+      throw new IllegalStateException("Order cannot be marked as PAID from status: " + this.status);
     }
-    this.totalPrice = sum;
+    this.status = OrderStatus.PAID;
+  }
+
+  public void applyPricing(PricingResult result) {
+    this.originalTotalPrice = result.originalTotal();
+    this.discountAmount = result.discountAmount();
+    this.deliveryFee = result.deliveryFee();
+    this.finalPrice = result.finalPrice();
   }
 
   public boolean isOwnedBy(Long userId) {
