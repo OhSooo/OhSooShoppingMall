@@ -28,10 +28,10 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.Store;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.exception.StoreErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.repository.StoreRepository;
 import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -81,14 +81,24 @@ public class ItemService {
             }
         }
 
-        // 5. Item 생성
+        // 5. 요청 내 옵션 조합 중복 검증
+        Set<String> requestCombinations = new HashSet<>();
+        for (VariantDto variantDto : request.getVariants()) {
+            String combinationKey = buildOptionCombinationKey(
+                    variantDto.getOptions(), OptionDto::getType, OptionDto::getValue);
+            if (!requestCombinations.add(combinationKey)) {
+                throw new BusinessException(CatalogErrorCode.DUPLICATE_OPTION_COMBINATION);
+            }
+        }
+
+        // 6. Item 생성
         Item item = new Item(store, category, request.getName(), request.getBasePrice());
         itemRepository.save(item);
 
-        // 6. Option 생성 — 동일 Item 내에서 type+value가 같은 옵션은 한 번만 생성
+        // 7. Option 생성 — 동일 Item 내에서 type+value가 같은 옵션은 한 번만 생성
         Map<String, Option> optionCache = new HashMap<>();
 
-        // 7. Variant + ItemVariantOption + Inventory 생성
+        // 8. Variant + ItemVariantOption + Inventory 생성
         List<VariantResult> variantResults = new ArrayList<>();
 
         for (VariantDto variantDto : request.getVariants()) {
@@ -156,7 +166,34 @@ public class ItemService {
             }
         }
 
-        // 4. Variant + Option + ItemVariantOption + Inventory 생성
+        // 4. 요청 내 옵션 조합 중복 검증
+        Set<String> requestCombinations = new HashSet<>();
+        for (AddVariantsRequestDto.VariantDto variantDto : request.getVariants()) {
+            String combinationKey = buildOptionCombinationKey(
+                    variantDto.getOptions(),
+                    AddVariantsRequestDto.OptionDto::getType,
+                    AddVariantsRequestDto.OptionDto::getValue);
+            if (!requestCombinations.add(combinationKey)) {
+                throw new BusinessException(CatalogErrorCode.DUPLICATE_OPTION_COMBINATION);
+            }
+        }
+
+        // 5. DB 기존 옵션 조합과 중복 검증
+        Set<String> existingCombinations = new HashSet<>();
+        for (ItemVariant existingVariant : itemVariantRepository.findByItem_ItemId(itemId)) {
+            String existingKey = buildOptionCombinationKey(
+                    existingVariant.getItemVariantOptions(),
+                    vo -> vo.getOption().getType(),
+                    vo -> vo.getOption().getValue());
+            existingCombinations.add(existingKey);
+        }
+        for (String requestKey : requestCombinations) {
+            if (existingCombinations.contains(requestKey)) {
+                throw new BusinessException(CatalogErrorCode.DUPLICATE_OPTION_COMBINATION);
+            }
+        }
+
+        // 6. Variant + Option + ItemVariantOption + Inventory 생성
         Map<String, Option> optionCache = new HashMap<>();
         List<AddVariantsResponseDto.VariantResult> variantResults = new ArrayList<>();
 
@@ -187,12 +224,26 @@ public class ItemService {
         return new AddVariantsResponseDto(itemId, variantResults);
     }
 
+    private <T> String buildOptionCombinationKey(
+            Collection<T> options,
+            Function<T, OptionType> typeExtractor,
+            Function<T, String> valueExtractor) {
+        if (options == null || options.isEmpty()) {
+            return "";
+        }
+        return options.stream()
+                .map(o -> typeExtractor.apply(o).name() + ":" + valueExtractor.apply(o).trim())
+                .sorted()
+                .collect(Collectors.joining("|"));
+    }
+
     private Option findOrCreateOption(
             Item item, OptionType type, String value, Map<String, Option> optionCache) {
-        String cacheKey = type.name() + ":" + value;
+        String trimmed = value.trim();
+        String cacheKey = type.name() + ":" + trimmed;
         return optionCache.computeIfAbsent(cacheKey, k ->
-                optionRepository.findByItem_ItemIdAndTypeAndValue(item.getItemId(), type, value)
-                        .orElseGet(() -> optionRepository.save(new Option(item, type, value)))
+                optionRepository.findByItem_ItemIdAndTypeAndValue(item.getItemId(), type, trimmed)
+                        .orElseGet(() -> optionRepository.save(new Option(item, type, trimmed)))
         );
     }
 
