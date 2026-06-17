@@ -1,23 +1,17 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.controller;
 
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.CreateOptionRequest;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.OptionResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.option.OptionType;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.service.OptionService;
 import com.ohsooo.platform.ohsooshoppingmall.global.response.BaseResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Validated
 @RestController
 @RequestMapping("/catalog/option")
 @RequiredArgsConstructor
@@ -63,28 +57,4 @@ public class OptionController {
         return ResponseEntity.ok(BaseResponse.success("옵션 조회 성공", response));
     }
 
-    @Operation(
-            summary = "옵션 생성",
-            description = """
-                    특정 상품에 새로운 옵션을 생성합니다.
-                    - 동일한 상품에 동일한 옵션 타입 + 값은 중복 생성할 수 없습니다.
-                    - 판매자 권한이 필요합니다.
-                    """
-    )
-    @PostMapping
-    public  ResponseEntity<BaseResponse<Void>> createOption(
-            @AuthenticationPrincipal Long userId,
-            @RequestBody @Valid CreateOptionRequest request
-    ) {
-        optionService.createOption(
-                userId,
-                request.getItemId(),
-                request.getType(),
-                request.getValue()
-        );
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(BaseResponse.success("옵션 생성 성공", null));
-    }
 }
