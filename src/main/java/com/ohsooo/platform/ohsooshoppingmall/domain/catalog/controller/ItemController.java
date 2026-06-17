@@ -49,9 +49,10 @@ public class ItemController {
     )
     @PostMapping
     public ResponseEntity<BaseResponse<ItemCreateResponseDto>> createItem(
+            @AuthenticationPrincipal Long userId,
             @RequestBody @Valid ItemCreateRequestDto request
     ) {
-        ItemCreateResponseDto response = itemService.createItem(request);
+        ItemCreateResponseDto response = itemService.createItem(userId, request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(BaseResponse.success("상품 생성 성공", response));

@@ -55,11 +55,15 @@ public class ItemService {
     private final InventoryService inventoryService;
 
     // 상품 생성
-    public ItemCreateResponseDto createItem(ItemCreateRequestDto request) {
+    public ItemCreateResponseDto createItem(Long userId, ItemCreateRequestDto request) {
 
-        // 1. Store 존재 여부 검증
+        // 1. Store 존재 여부 + 소유자 검증
         Store store = storeRepository.findById(request.getStoreId())
                 .orElseThrow(() -> new BusinessException(StoreErrorCode.STORE_NOT_FOUND));
+
+        if (!store.getOwnerId().equals(userId)) {
+            throw new BusinessException(StoreErrorCode.STORE_OWNER_FORBIDDEN);
+        }
 
         // 2. Category 존재 여부 검증
         Category category = categoryRepository.findById(request.getCategoryId())
