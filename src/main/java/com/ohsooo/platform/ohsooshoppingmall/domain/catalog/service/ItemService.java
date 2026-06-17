@@ -1,25 +1,41 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.service;
 
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.ItemCreateRequestDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.ItemCreateRequestDto.OptionDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.ItemCreateRequestDto.VariantDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemCreateResponseDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemCreateResponseDto.VariantResult;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemResponse;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Category;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Item;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.option.Option;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.option.OptionType;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariant;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariantOption;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.exception.CatalogErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.exception.CategoryErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.exception.ItemErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.mapper.ItemMapper;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.CategoryRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemRepository;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemVariantOptionRepository;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemVariantRepository;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.OptionRepository;
+import com.ohsooo.platform.ohsooshoppingmall.domain.inventory.service.InventoryService;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.Store;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.exception.StoreErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.repository.StoreRepository;
 import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Slf4j
 @Service
@@ -31,6 +47,88 @@ public class ItemService {
     private final ItemMapper itemMapper;
     private final CategoryRepository categoryRepository;
     private final StoreRepository storeRepository;
+    private final OptionRepository optionRepository;
+    private final ItemVariantRepository itemVariantRepository;
+    private final ItemVariantOptionRepository itemVariantOptionRepository;
+    private final InventoryService inventoryService;
+
+    // 상품 생성
+    public ItemCreateResponseDto createItem(ItemCreateRequestDto request) {
+
+        // 1. Store 존재 여부 검증
+        Store store = storeRepository.findById(request.getStoreId())
+                .orElseThrow(() -> new BusinessException(StoreErrorCode.STORE_NOT_FOUND));
+
+        // 2. Category 존재 여부 검증
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new BusinessException(CategoryErrorCode.CATEGORY_NOT_FOUND));
+
+        // 3. 요청 내 SKU 중복 검증 (같은 요청 안에서 SKU가 겹치는 경우)
+        long distinctSkuCount = request.getVariants().stream()
+                .map(VariantDto::getSku)
+                .distinct()
+                .count();
+        if (distinctSkuCount != request.getVariants().size()) {
+            throw new BusinessException(CatalogErrorCode.DUPLICATE_SKU);
+        }
+
+        // 4. DB SKU 중복 검증
+        for (VariantDto variantDto : request.getVariants()) {
+            if (itemVariantRepository.existsBySku(variantDto.getSku())) {
+                throw new BusinessException(CatalogErrorCode.DUPLICATE_SKU);
+            }
+        }
+
+        // 5. Item 생성
+        Item item = new Item(store, category, request.getName(), request.getBasePrice());
+        itemRepository.save(item);
+
+        // 6. Option 생성 — 동일 Item 내에서 type+value가 같은 옵션은 한 번만 생성
+        Map<String, Option> optionCache = new HashMap<>();
+
+        // 7. Variant + ItemVariantOption + Inventory 생성
+        List<VariantResult> variantResults = new ArrayList<>();
+
+        for (VariantDto variantDto : request.getVariants()) {
+            // ItemVariant 생성
+            ItemVariant variant = new ItemVariant(item, variantDto.getSku(), variantDto.getPrice());
+            itemVariantRepository.save(variant);
+
+            // 옵션 연결
+            if (variantDto.getOptions() != null) {
+                for (OptionDto optionDto : variantDto.getOptions()) {
+                    String cacheKey = optionDto.getType().name() + ":" + optionDto.getValue();
+                    Option option = optionCache.computeIfAbsent(cacheKey, k -> {
+                        Option newOption = new Option(item, optionDto.getType(), optionDto.getValue());
+                        return optionRepository.save(newOption);
+                    });
+                    ItemVariantOption variantOption = new ItemVariantOption(variant, option);
+                    itemVariantOptionRepository.save(variantOption);
+                }
+            }
+
+            // Inventory 초기 재고 생성 (InventoryService 내부에서 음수 검증 포함)
+            inventoryService.createInventory(variant.getItemVariantId(), variantDto.getInitialQuantity());
+
+            variantResults.add(new VariantResult(
+                    variant.getItemVariantId(),
+                    variant.getSku(),
+                    variant.getPrice(),
+                    variant.getStatus(),
+                    variantDto.getInitialQuantity()
+            ));
+        }
+
+        return new ItemCreateResponseDto(
+                item.getItemId(),
+                store.getStoreId(),
+                category.getCategoryId(),
+                item.getName(),
+                item.getBasePrice(),
+                item.getStatus(),
+                variantResults
+        );
+    }
 
     // 단건 조회
     @Transactional(readOnly = true)
