@@ -1,8 +1,10 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.service;
 
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.AddVariantsRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.ItemCreateRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.ItemCreateRequestDto.OptionDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.ItemCreateRequestDto.VariantDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.AddVariantsResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemCreateResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemCreateResponseDto.VariantResult;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemResponse;
@@ -97,11 +99,8 @@ public class ItemService {
             // 옵션 연결
             if (variantDto.getOptions() != null) {
                 for (OptionDto optionDto : variantDto.getOptions()) {
-                    String cacheKey = optionDto.getType().name() + ":" + optionDto.getValue();
-                    Option option = optionCache.computeIfAbsent(cacheKey, k -> {
-                        Option newOption = new Option(item, optionDto.getType(), optionDto.getValue());
-                        return optionRepository.save(newOption);
-                    });
+                    Option option = findOrCreateOption(
+                            item, optionDto.getType(), optionDto.getValue(), optionCache);
                     ItemVariantOption variantOption = new ItemVariantOption(variant, option);
                     itemVariantOptionRepository.save(variantOption);
                 }
@@ -127,6 +126,73 @@ public class ItemService {
                 item.getBasePrice(),
                 item.getStatus(),
                 variantResults
+        );
+    }
+
+    // 기존 상품에 Variant 추가
+    public AddVariantsResponseDto addVariants(Long userId, Long itemId, AddVariantsRequestDto request) {
+
+        // 1. Item 존재 + 소유자 검증
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new BusinessException(ItemErrorCode.ITEM_NOT_FOUND));
+
+        if (!item.getStore().getOwnerId().equals(userId)) {
+            throw new BusinessException(StoreErrorCode.STORE_OWNER_FORBIDDEN);
+        }
+
+        // 2. 요청 내 SKU 중복 검증
+        long distinctSkuCount = request.getVariants().stream()
+                .map(AddVariantsRequestDto.VariantDto::getSku)
+                .distinct()
+                .count();
+        if (distinctSkuCount != request.getVariants().size()) {
+            throw new BusinessException(CatalogErrorCode.DUPLICATE_SKU);
+        }
+
+        // 3. DB SKU 중복 검증
+        for (AddVariantsRequestDto.VariantDto variantDto : request.getVariants()) {
+            if (itemVariantRepository.existsBySku(variantDto.getSku())) {
+                throw new BusinessException(CatalogErrorCode.DUPLICATE_SKU);
+            }
+        }
+
+        // 4. Variant + Option + ItemVariantOption + Inventory 생성
+        Map<String, Option> optionCache = new HashMap<>();
+        List<AddVariantsResponseDto.VariantResult> variantResults = new ArrayList<>();
+
+        for (AddVariantsRequestDto.VariantDto variantDto : request.getVariants()) {
+            ItemVariant variant = new ItemVariant(item, variantDto.getSku(), variantDto.getPrice());
+            itemVariantRepository.save(variant);
+
+            if (variantDto.getOptions() != null) {
+                for (AddVariantsRequestDto.OptionDto optionDto : variantDto.getOptions()) {
+                    Option option = findOrCreateOption(
+                            item, optionDto.getType(), optionDto.getValue(), optionCache);
+                    ItemVariantOption variantOption = new ItemVariantOption(variant, option);
+                    itemVariantOptionRepository.save(variantOption);
+                }
+            }
+
+            inventoryService.createInventory(variant.getItemVariantId(), variantDto.getInitialQuantity());
+
+            variantResults.add(new AddVariantsResponseDto.VariantResult(
+                    variant.getItemVariantId(),
+                    variant.getSku(),
+                    variant.getPrice(),
+                    variant.getStatus(),
+                    variantDto.getInitialQuantity()
+            ));
+        }
+
+        return new AddVariantsResponseDto(itemId, variantResults);
+    }
+
+    private Option findOrCreateOption(
+            Item item, OptionType type, String value, Map<String, Option> optionCache) {
+        String cacheKey = type.name() + ":" + value;
+        return optionCache.computeIfAbsent(cacheKey, k ->
+                optionRepository.findByItem_ItemIdAndTypeAndValue(item.getItemId(), type, value)
+                        .orElseGet(() -> optionRepository.save(new Option(item, type, value)))
         );
     }
 
