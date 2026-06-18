@@ -223,6 +223,7 @@ public class OrderService {
     }
 
     Set<Long> targets = new HashSet<>(cartItemIds);
+    Set<Long> foundIds = new HashSet<>();
 
     List<OrderItem> result = new ArrayList<>();
     List<Long> variantIdsToRemove = new ArrayList<>();
@@ -232,9 +233,13 @@ public class OrderService {
       int qty = ci.getQuantity();
       result.add(OrderItem.of(variant, qty, variant.getPrice()));
       variantIdsToRemove.add(variant.getItemVariantId());
+      foundIds.add(ci.getCartItemId());
     }
 
-    if (result.isEmpty()) throw new BusinessException(OrderErrorCode.INVALID_CART_ITEM_IDS);
+    if (!foundIds.containsAll(targets)) {
+      throw new BusinessException(CartErrorCode.CART_ITEM_NOT_FOUND);
+    }
+
     variantIdsToRemove.forEach(cart::removeItemByVariantId);
     return result;
   }
