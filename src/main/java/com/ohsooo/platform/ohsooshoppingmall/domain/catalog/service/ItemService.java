@@ -64,9 +64,7 @@ public class ItemService {
         Store store = storeRepository.findById(request.getStoreId())
                 .orElseThrow(() -> new BusinessException(StoreErrorCode.STORE_NOT_FOUND));
 
-        if (!store.getOwnerId().equals(userId)) {
-            throw new BusinessException(StoreErrorCode.STORE_OWNER_FORBIDDEN);
-        }
+        validateStoreOwner(store, userId);
 
         // 2. Category 존재 여부 검증
         Category category = categoryRepository.findById(request.getCategoryId())
@@ -150,12 +148,8 @@ public class ItemService {
     public AddVariantsResponseDto addVariants(Long userId, Long itemId, AddVariantsRequestDto request) {
 
         // 1. Item 존재 + 소유자 검증
-        Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new BusinessException(ItemErrorCode.ITEM_NOT_FOUND));
-
-        if (!item.getStore().getOwnerId().equals(userId)) {
-            throw new BusinessException(StoreErrorCode.STORE_OWNER_FORBIDDEN);
-        }
+        Item item = getActiveItem(itemId);
+        validateStoreOwner(item.getStore(), userId);
 
         // 2. 요청 내 SKU 중복 검증
         long distinctSkuCount = request.getVariants().stream()
@@ -231,6 +225,17 @@ public class ItemService {
         return new AddVariantsResponseDto(itemId, variantResults);
     }
 
+    private Item getActiveItem(Long itemId) {
+        return itemRepository.findByItemIdAndIsDeletedFalse(itemId)
+                .orElseThrow(() -> new BusinessException(ItemErrorCode.ITEM_NOT_FOUND));
+    }
+
+    private void validateStoreOwner(Store store, Long userId) {
+        if (!store.getOwnerId().equals(userId)) {
+            throw new BusinessException(StoreErrorCode.STORE_OWNER_FORBIDDEN);
+        }
+    }
+
     private <T> String buildOptionCombinationKey(
             Collection<T> options,
             Function<T, OptionType> typeExtractor,
@@ -256,12 +261,8 @@ public class ItemService {
 
     // 상품 기본 정보 수정
     public ItemResponse updateItem(Long userId, Long itemId, ItemUpdateRequestDto request) {
-        Item item = itemRepository.findByItemIdAndIsDeletedFalse(itemId)
-                .orElseThrow(() -> new BusinessException(ItemErrorCode.ITEM_NOT_FOUND));
-
-        if (!item.getStore().getOwnerId().equals(userId)) {
-            throw new BusinessException(StoreErrorCode.STORE_OWNER_FORBIDDEN);
-        }
+        Item item = getActiveItem(itemId);
+        validateStoreOwner(item.getStore(), userId);
 
         if (request.getName() != null) {
             String trimmedName = request.getName().trim();
@@ -286,12 +287,8 @@ public class ItemService {
 
     // 상품 상태 변경
     public ItemResponse updateItemStatus(Long userId, Long itemId, ItemStatusUpdateRequestDto request) {
-        Item item = itemRepository.findByItemIdAndIsDeletedFalse(itemId)
-                .orElseThrow(() -> new BusinessException(ItemErrorCode.ITEM_NOT_FOUND));
-
-        if (!item.getStore().getOwnerId().equals(userId)) {
-            throw new BusinessException(StoreErrorCode.STORE_OWNER_FORBIDDEN);
-        }
+        Item item = getActiveItem(itemId);
+        validateStoreOwner(item.getStore(), userId);
 
         if (request.getStatus() == ItemStatus.DELETED) {
             throw new BusinessException(ItemErrorCode.INVALID_STATUS_TRANSITION);
@@ -303,12 +300,8 @@ public class ItemService {
 
     // 상품 삭제 (soft delete)
     public void deleteItem(Long userId, Long itemId) {
-        Item item = itemRepository.findByItemIdAndIsDeletedFalse(itemId)
-                .orElseThrow(() -> new BusinessException(ItemErrorCode.ITEM_NOT_FOUND));
-
-        if (!item.getStore().getOwnerId().equals(userId)) {
-            throw new BusinessException(StoreErrorCode.STORE_OWNER_FORBIDDEN);
-        }
+        Item item = getActiveItem(itemId);
+        validateStoreOwner(item.getStore(), userId);
 
         item.delete();
     }
@@ -316,9 +309,7 @@ public class ItemService {
     // 단건 조회
     @Transactional(readOnly = true)
     public ItemResponse getItemById(Long id) {
-        Item item = itemRepository.findByItemIdAndIsDeletedFalse(id)
-                .orElseThrow(() -> new BusinessException(ItemErrorCode.ITEM_NOT_FOUND));
-        return itemMapper.toResponse(item);
+        return itemMapper.toResponse(getActiveItem(id));
     }
 
     // 카테고리 기준 조회
