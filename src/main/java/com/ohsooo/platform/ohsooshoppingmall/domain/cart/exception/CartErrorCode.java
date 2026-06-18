@@ -19,6 +19,11 @@ public enum CartErrorCode implements BaseErrorCode {
 
   // 요청 검증
   INVALID_QUANTITY(HttpStatus.BAD_REQUEST, "CART_4001", "유효하지 않은 수량입니다."),
+  EXCEEDS_STOCK(HttpStatus.BAD_REQUEST, "CART_4002", "재고를 초과하는 수량입니다."),
+
+  // 상품 상태
+  OUT_OF_STOCK(HttpStatus.CONFLICT, "CART_4091", "재고가 없는 상품입니다."),
+  ITEM_DISABLED(HttpStatus.CONFLICT, "CART_4092", "판매 중지된 상품입니다."),
 
   // 권한/소유
   CART_ACCESS_DENIED(HttpStatus.FORBIDDEN, "CART_4031", "해당 장바구니에 대한 권한이 없습니다.");

@@ -10,9 +10,12 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.cart.mapper.CartMapper;
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.repository.CartItemRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.repository.CartRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariant;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariantStatus;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemVariantRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.entity.User;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.repository.UserRepository;
+import com.ohsooo.platform.ohsooshoppingmall.domain.inventory.dto.response.StockResponse;
+import com.ohsooo.platform.ohsooshoppingmall.domain.inventory.service.InventoryService;
 import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -32,6 +35,7 @@ public class CartService {
   private final CartItemRepository cartItemRepository;
   private final ItemVariantRepository itemVariantRepository;
   private final UserRepository userRepository;
+  private final InventoryService inventoryService;
   private final CartMapper cartMapper;
 
   /**
@@ -60,6 +64,13 @@ public class CartService {
     ItemVariant itemVariant = itemVariantRepository.findById(request.getItemVariantId())
         .orElseThrow(() -> new BusinessException(CartErrorCode.ITEM_VARIANT_NOT_FOUND));
 
+    if (itemVariant.getStatus() == ItemVariantStatus.DISABLED) {
+      throw new BusinessException(CartErrorCode.ITEM_DISABLED);
+    }
+    if (itemVariant.getStatus() == ItemVariantStatus.OUT_OF_STOCK) {
+      throw new BusinessException(CartErrorCode.OUT_OF_STOCK);
+    }
+
     CartItem newItem = CartItem.of(itemVariant, request.getQuantity());
     cart.addOrIncreaseItem(newItem);
 
@@ -87,6 +98,11 @@ public class CartService {
     CartItem cartItem = cartItemRepository
         .findByCartItemIdAndCart_User_UserId(cartItemId, userId)
         .orElseThrow(() -> new BusinessException(CartErrorCode.CART_ITEM_NOT_FOUND));
+
+    StockResponse stock = inventoryService.getStock(cartItem.getItemVariant().getItemVariantId());
+    if (request.getQuantity() > stock.getQuantity()) {
+      throw new BusinessException(CartErrorCode.EXCEEDS_STOCK);
+    }
 
     cartItem.changeQuantity(request.getQuantity());
 
