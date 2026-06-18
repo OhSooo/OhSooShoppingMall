@@ -94,6 +94,22 @@ public class Item {
         this.updatedAt = OffsetDateTime.now();
     }
 
+    public void updateName(String name) {
+        this.name = name;
+    }
+
+    public void updateCategory(Category category) {
+        this.category = category;
+    }
+
+    public void updateBasePrice(BigDecimal basePrice) {
+        this.basePrice = basePrice.setScale(2);
+    }
+
+    public void changeStatus(ItemStatus status) {
+        this.status = status;
+    }
+
     public void deactivate() {
         this.status = ItemStatus.INACTIVE;
     }

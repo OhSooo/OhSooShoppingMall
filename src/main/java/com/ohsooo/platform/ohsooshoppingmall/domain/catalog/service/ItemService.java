@@ -4,12 +4,15 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.AddVaria
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.ItemCreateRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.ItemCreateRequestDto.OptionDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.ItemCreateRequestDto.VariantDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.ItemStatusUpdateRequestDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.ItemUpdateRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.AddVariantsResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemCreateResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemCreateResponseDto.VariantResult;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Category;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Item;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.ItemStatus;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.option.Option;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.option.OptionType;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariant;
@@ -249,6 +252,65 @@ public class ItemService {
                 optionRepository.findByItem_ItemIdAndTypeAndValue(item.getItemId(), type, trimmed)
                         .orElseGet(() -> optionRepository.save(new Option(item, type, trimmed)))
         );
+    }
+
+    // 상품 기본 정보 수정
+    public ItemResponse updateItem(Long userId, Long itemId, ItemUpdateRequestDto request) {
+        Item item = itemRepository.findByItemIdAndIsDeletedFalse(itemId)
+                .orElseThrow(() -> new BusinessException(ItemErrorCode.ITEM_NOT_FOUND));
+
+        if (!item.getStore().getOwnerId().equals(userId)) {
+            throw new BusinessException(StoreErrorCode.STORE_OWNER_FORBIDDEN);
+        }
+
+        if (request.getName() != null) {
+            String trimmedName = request.getName().trim();
+            if (trimmedName.isEmpty()) {
+                throw new BusinessException(ItemErrorCode.INVALID_ITEM_NAME);
+            }
+            item.updateName(trimmedName);
+        }
+
+        if (request.getCategoryId() != null) {
+            Category category = categoryRepository.findByCategoryIdAndIsActiveTrue(request.getCategoryId())
+                    .orElseThrow(() -> new BusinessException(CategoryErrorCode.CATEGORY_NOT_FOUND));
+            item.updateCategory(category);
+        }
+
+        if (request.getBasePrice() != null) {
+            item.updateBasePrice(request.getBasePrice());
+        }
+
+        return itemMapper.toResponse(item);
+    }
+
+    // 상품 상태 변경
+    public ItemResponse updateItemStatus(Long userId, Long itemId, ItemStatusUpdateRequestDto request) {
+        Item item = itemRepository.findByItemIdAndIsDeletedFalse(itemId)
+                .orElseThrow(() -> new BusinessException(ItemErrorCode.ITEM_NOT_FOUND));
+
+        if (!item.getStore().getOwnerId().equals(userId)) {
+            throw new BusinessException(StoreErrorCode.STORE_OWNER_FORBIDDEN);
+        }
+
+        if (request.getStatus() == ItemStatus.DELETED) {
+            throw new BusinessException(ItemErrorCode.INVALID_STATUS_TRANSITION);
+        }
+
+        item.changeStatus(request.getStatus());
+        return itemMapper.toResponse(item);
+    }
+
+    // 상품 삭제 (soft delete)
+    public void deleteItem(Long userId, Long itemId) {
+        Item item = itemRepository.findByItemIdAndIsDeletedFalse(itemId)
+                .orElseThrow(() -> new BusinessException(ItemErrorCode.ITEM_NOT_FOUND));
+
+        if (!item.getStore().getOwnerId().equals(userId)) {
+            throw new BusinessException(StoreErrorCode.STORE_OWNER_FORBIDDEN);
+        }
+
+        item.delete();
     }
 
     // 단건 조회
