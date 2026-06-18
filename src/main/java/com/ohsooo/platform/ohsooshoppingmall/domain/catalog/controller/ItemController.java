@@ -2,6 +2,8 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.controller;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.AddVariantsRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.ItemCreateRequestDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.ItemStatusUpdateRequestDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.ItemUpdateRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.AddVariantsResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemCreateResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemResponse;
@@ -18,7 +20,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -159,5 +163,65 @@ public class ItemController {
     ) {
         Page<ItemResponse> response = itemService.getItems(pageable);
         return ResponseEntity.ok(BaseResponse.success("상품 조회 성공", response));
+    }
+
+    @Operation(
+            summary = "상품 기본 정보 수정",
+            description = """
+        상품의 기본 정보(이름, 카테고리, 기본가격)를 수정합니다.
+        Partial Update — null 필드는 기존 값을 유지합니다.
+
+        - 스토어 소유자만 수정할 수 있습니다.
+        - 삭제된 상품은 수정할 수 없습니다.
+        - categoryId를 변경할 경우 활성 상태인 카테고리만 허용됩니다.
+        """
+    )
+    @PatchMapping("/{itemId}")
+    public ResponseEntity<BaseResponse<ItemResponse>> updateItem(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long itemId,
+            @RequestBody @Valid ItemUpdateRequestDto request
+    ) {
+        ItemResponse response = itemService.updateItem(userId, itemId, request);
+        return ResponseEntity.ok(BaseResponse.success("상품 수정 성공", response));
+    }
+
+    @Operation(
+            summary = "상품 상태 변경",
+            description = """
+        상품의 판매 상태를 변경합니다.
+
+        - 스토어 소유자만 변경할 수 있습니다.
+        - ACTIVE, INACTIVE만 허용됩니다.
+        - DELETED 상태로의 직접 변경은 허용되지 않습니다 (삭제 API를 사용하세요).
+        """
+    )
+    @PatchMapping("/{itemId}/status")
+    public ResponseEntity<BaseResponse<ItemResponse>> updateItemStatus(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long itemId,
+            @RequestBody @Valid ItemStatusUpdateRequestDto request
+    ) {
+        ItemResponse response = itemService.updateItemStatus(userId, itemId, request);
+        return ResponseEntity.ok(BaseResponse.success("상품 상태 변경 성공", response));
+    }
+
+    @Operation(
+            summary = "상품 삭제 (Soft Delete)",
+            description = """
+        상품을 소프트 삭제합니다.
+
+        - 스토어 소유자만 삭제할 수 있습니다.
+        - isDeleted=true, status=DELETED로 변경되며, deletedAt이 기록됩니다.
+        - 이미 삭제된 상품은 조회되지 않습니다.
+        """
+    )
+    @DeleteMapping("/{itemId}")
+    public ResponseEntity<BaseResponse<Void>> deleteItem(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long itemId
+    ) {
+        itemService.deleteItem(userId, itemId);
+        return ResponseEntity.ok(BaseResponse.success("상품 삭제 성공", null));
     }
 }
