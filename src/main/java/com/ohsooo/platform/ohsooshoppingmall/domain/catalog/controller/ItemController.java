@@ -1,18 +1,27 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.controller;
 
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.AddVariantsRequestDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.ItemCreateRequestDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.AddVariantsResponseDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemCreateResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.service.ItemService;
 import com.ohsooo.platform.ohsooshoppingmall.global.response.BaseResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -25,6 +34,54 @@ import java.util.List;
 public class ItemController {
 
     private final ItemService itemService;
+
+    @Operation(
+            summary = "상품 생성",
+            description = """
+        스토어에 새 상품을 등록합니다. Item, Option, ItemVariant, ItemVariantOption,
+        Inventory 초기 재고가 한 번에 생성됩니다.
+
+        - SKU는 전체 시스템에서 고유해야 합니다.
+        - 같은 요청 내 variants에서 SKU 중복은 허용되지 않습니다.
+        - 동일 상품 내에서 type+value가 같은 옵션은 내부적으로 한 번만 생성됩니다.
+        - initialQuantity는 1 이상이어야 합니다.
+        """
+    )
+    @PostMapping
+    public ResponseEntity<BaseResponse<ItemCreateResponseDto>> createItem(
+            @AuthenticationPrincipal Long userId,
+            @RequestBody @Valid ItemCreateRequestDto request
+    ) {
+        ItemCreateResponseDto response = itemService.createItem(userId, request);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(BaseResponse.success("상품 생성 성공", response));
+    }
+
+    @Operation(
+            summary = "기존 상품에 Variant 추가",
+            description = """
+                기존 상품에 새로운 판매 단위(Variant)를 추가합니다.
+                Option, ItemVariant, ItemVariantOption, Inventory가 한 트랜잭션으로 생성됩니다.
+
+                - SKU는 전체 시스템에서 고유해야 합니다.
+                - 같은 요청 내 variants에서 SKU 중복은 허용되지 않습니다.
+                - 동일 상품 내에서 type+value가 같은 옵션은 기존 옵션을 재사용합니다.
+                - initialQuantity는 0 이상이어야 합니다.
+                - 판매자 권한이 필요합니다.
+                """
+    )
+    @PostMapping("/{itemId}/variants")
+    public ResponseEntity<BaseResponse<AddVariantsResponseDto>> addVariants(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long itemId,
+            @RequestBody @Valid AddVariantsRequestDto request
+    ) {
+        AddVariantsResponseDto response = itemService.addVariants(userId, itemId, request);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(BaseResponse.success("Variant 추가 성공", response));
+    }
 
     @Operation(
             summary = "상품 단건 조회",

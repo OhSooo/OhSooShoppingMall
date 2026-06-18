@@ -1,7 +1,6 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.service;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.OptionResponse;
-import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Item;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.exception.ItemErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.exception.OptionErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.option.Option;
@@ -9,7 +8,6 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.option.Option
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.mapper.OptionMapper;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.OptionRepository;
-import com.ohsooo.platform.ohsooshoppingmall.domain.store.exception.StoreErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -81,34 +79,4 @@ public class OptionService {
                 itemId, type, value
         );
     }
-    // 옵션 생성
-    public void createOption(Long ownerId, Long itemId, OptionType type, String value) {
-
-        // 아이템 존재 여부 검사
-        Item item = itemRepository.findById(itemId)
-            .orElseThrow(() -> new BusinessException(ItemErrorCode.ITEM_NOT_FOUND));
-
-
-        // ownerId 일치 검사
-        if (!item.getStore().getOwnerId().equals(ownerId)) {
-            throw new BusinessException(StoreErrorCode.STORE_OWNER_FORBIDDEN);
-        }
-
-        // 중복 검사
-        if (optionRepository.existsByItem_ItemIdAndTypeAndValue(itemId, type, value)) {
-            throw new BusinessException(OptionErrorCode.OPTION_ALREADY_EXISTS);
-        }
-
-        Option option = new Option(
-                itemRepository.getReferenceById(itemId),
-                type,
-                value
-        );
-
-        optionRepository.save(option);
-    }
-
-
-
-
 }

@@ -146,6 +146,6 @@ public class InventoryService {
     ItemVariantStatus newStatus = currentQuantity > 0
         ? ItemVariantStatus.ACTIVE
         : ItemVariantStatus.OUT_OF_STOCK;
-    itemVariantRepository.syncStatus(itemVariantId, newStatus);
+    itemVariantRepository.syncStatus(itemVariantId, newStatus, ItemVariantStatus.DISABLED);
   }
 }

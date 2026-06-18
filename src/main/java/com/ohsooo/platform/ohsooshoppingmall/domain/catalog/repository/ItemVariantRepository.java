@@ -13,6 +13,8 @@ public interface ItemVariantRepository extends JpaRepository<ItemVariant, Long> 
 
   Optional<ItemVariant> findBySku(String sku);
 
+  boolean existsBySku(String sku);
+
   List<ItemVariant> findByItem_ItemId(Long itemId);
 
   List<ItemVariant> findByItem_ItemIdAndStatus(Long itemId, ItemVariantStatus status);
@@ -23,7 +25,9 @@ public interface ItemVariantRepository extends JpaRepository<ItemVariant, Long> 
       UPDATE ItemVariant v
          SET v.status = :status
        WHERE v.itemVariantId = :itemVariantId
-         AND v.status <> 'DISABLED'
+         AND v.status <> :disabledStatus
       """)
-  void syncStatus(@Param("itemVariantId") Long itemVariantId, @Param("status") ItemVariantStatus status);
+  void syncStatus(@Param("itemVariantId") Long itemVariantId,
+                  @Param("status") ItemVariantStatus status,
+                  @Param("disabledStatus") ItemVariantStatus disabledStatus);
 }
