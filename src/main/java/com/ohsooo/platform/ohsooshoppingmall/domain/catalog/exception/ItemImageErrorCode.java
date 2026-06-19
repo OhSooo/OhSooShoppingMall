@@ -16,7 +16,8 @@ public enum ItemImageErrorCode implements BaseErrorCode {
     IMAGE_ORDER_EMPTY(HttpStatus.BAD_REQUEST, "ITEM_IMAGE_400_4", "이미지 순서 목록은 비어 있을 수 없습니다"),
     IMAGE_ORDER_DUPLICATE(HttpStatus.BAD_REQUEST, "ITEM_IMAGE_400_5", "이미지 ID에 중복이 있습니다"),
     IMAGE_ORDER_MISMATCH(HttpStatus.BAD_REQUEST, "ITEM_IMAGE_400_6", "요청된 이미지 목록이 해당 상품의 전체 이미지와 일치하지 않습니다"),
-    PRIMARY_IMAGE_REQUIRED(HttpStatus.BAD_REQUEST, "ITEM_IMAGE_400_7", "대표 이미지는 최소 1개 필요합니다");
+    PRIMARY_IMAGE_REQUIRED(HttpStatus.BAD_REQUEST, "ITEM_IMAGE_400_7", "대표 이미지는 최소 1개 필요합니다"),
+    INVALID_IMAGE_URL(HttpStatus.BAD_REQUEST, "ITEM_IMAGE_400_8", "이미지 URL이 유효하지 않습니다");
 
     private final HttpStatus status;
     private final String code;

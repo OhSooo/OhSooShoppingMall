@@ -86,7 +86,7 @@ public class ItemImageService {
         if (request.getImageUrl() != null) {
             String trimmedUrl = request.getImageUrl().trim();
             if (trimmedUrl.isEmpty()) {
-                throw new BusinessException(ItemImageErrorCode.IMAGE_NOT_FOUND);
+                throw new BusinessException(ItemImageErrorCode.INVALID_IMAGE_URL);
             }
             image.updateImageUrl(trimmedUrl);
         }
