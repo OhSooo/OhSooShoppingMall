@@ -6,6 +6,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.ItemStat
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.ItemUpdateRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.AddVariantsResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemCreateResponseDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemDetailResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.service.ItemService;
 import com.ohsooo.platform.ohsooshoppingmall.global.response.BaseResponse;
@@ -97,10 +98,10 @@ public class ItemController {
         """
     )
     @GetMapping("/{itemId}")
-    public ResponseEntity<BaseResponse<ItemResponse>> getItem(
+    public ResponseEntity<BaseResponse<ItemDetailResponse>> getItem(
             @PathVariable Long itemId
     ) {
-        ItemResponse response = itemService.getItemById(itemId);
+        ItemDetailResponse response = itemService.getItemById(itemId);
         return ResponseEntity.ok(BaseResponse.success("상품 조회 성공", response));
     }
 
