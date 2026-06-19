@@ -6,10 +6,12 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.store.dto.request.StoreProfi
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.dto.response.StoreDetailResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.dto.response.StoreProfileResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.dto.response.StoreResponse;
+import com.ohsooo.platform.ohsooshoppingmall.domain.store.service.StoreQueryService;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.service.StoreService;
 import com.ohsooo.platform.ohsooshoppingmall.global.response.BaseResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -19,13 +21,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/stores")
 @Tag(name = "Store", description = "스토어 관리 API")
+@RequiredArgsConstructor
 public class StoreController {
 
     private final StoreService storeService;
-
-    public StoreController(StoreService storeService) {
-        this.storeService = storeService;
-    }
+    private final StoreQueryService storeQueryService;
 
     @Operation(summary = "스토어 생성", description = "관리자가 새로운 스토어를 생성합니다")
     @PostMapping
@@ -50,9 +50,8 @@ public class StoreController {
     public ResponseEntity<BaseResponse<StoreDetailResponse>> getStore(
             @PathVariable Long storeId
     ) {
-        return ResponseEntity.ok(
-                BaseResponse.success("스토어 조회 성공", storeService.getStoreDetail(storeId))
-        );
+        StoreDetailResponse response = storeQueryService.getStoreDetail(storeId);
+        return ResponseEntity.ok(BaseResponse.success("스토어 조회 성공", response));
     }
 
     @Operation(summary = "스토어 프로필 수정", description = "스토어 owner가 프로필(소개, 공지, 대표이미지)을 수정합니다")

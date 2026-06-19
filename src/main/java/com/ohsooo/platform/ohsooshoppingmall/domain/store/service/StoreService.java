@@ -1,17 +1,12 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.store.service;
 
-import com.ohsooo.platform.ohsooshoppingmall.domain.store.dto.response.StoreDetailResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.dto.response.StoreProfileResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.dto.response.StoreResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.Store;
-import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.StoreBanner;
-import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.StoreDeliveryPolicy;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.StoreOperationStatus;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.StoreStatus;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.exception.StoreErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.mapper.StoreMapper;
-import com.ohsooo.platform.ohsooshoppingmall.domain.store.repository.StoreBannerRepository;
-import com.ohsooo.platform.ohsooshoppingmall.domain.store.repository.StoreDeliveryPolicyRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.store.repository.StoreRepository;
 import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +23,6 @@ import java.util.List;
 public class StoreService {
 
     private final StoreRepository storeRepository;
-    private final StoreBannerRepository storeBannerRepository;
-    private final StoreDeliveryPolicyRepository storeDeliveryPolicyRepository;
     private final StoreMapper storeMapper;
 
     public StoreResponse createStore(Long ownerId, String name, String description) {
@@ -39,20 +32,15 @@ public class StoreService {
     }
 
     @Transactional(readOnly = true)
-    public StoreDetailResponse getStoreDetail(Long storeId) {
-        Store store = getStoreEntity(storeId);
-        List<StoreBanner> banners = storeBannerRepository
-                .findAllByStore_StoreIdAndIsActiveTrueOrderBySortOrderAsc(storeId);
-        StoreDeliveryPolicy deliveryPolicy = storeDeliveryPolicyRepository
-                .findByStore_StoreId(storeId)
-                .orElse(null);
-        return storeMapper.toStoreDetailResponse(store, banners, deliveryPolicy);
-    }
-
-    @Transactional(readOnly = true)
     public Store getStoreEntity(Long storeId) {
         return storeRepository.findById(storeId)
                 .orElseThrow(() -> new BusinessException(StoreErrorCode.STORE_NOT_FOUND));
+    }
+
+    @Transactional(readOnly = true)
+    public StoreProfileResponse getStoreProfile(Long storeId) {
+        Store store = getStoreEntity(storeId);
+        return storeMapper.toStoreProfileResponse(store);
     }
 
     @Transactional(readOnly = true)

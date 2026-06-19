@@ -30,6 +30,13 @@ public class StoreDeliveryPolicyService {
         return storeMapper.toStoreDeliveryPolicyResponse(policy);
     }
 
+    @Transactional(readOnly = true)
+    public StoreDeliveryPolicyResponse getDeliveryPolicyOrNull(Long storeId) {
+        return storeDeliveryPolicyRepository.findByStore_StoreId(storeId)
+                .map(storeMapper::toStoreDeliveryPolicyResponse)
+                .orElse(null);
+    }
+
     public StoreDeliveryPolicyResponse upsertDeliveryPolicy(Long storeId, Long ownerId,
                                                              BigDecimal baseDeliveryFee,
                                                              BigDecimal freeDeliveryThreshold) {

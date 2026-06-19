@@ -43,7 +43,7 @@ public class StoreBannerController {
             @AuthenticationPrincipal Long userId,
             @PathVariable Long storeId,
             @PathVariable Long bannerId,
-            @RequestBody StoreBannerUpdateRequest request
+            @Valid @RequestBody StoreBannerUpdateRequest request
     ) {
         StoreBannerResponse response = storeBannerService.updateBanner(
                 storeId, bannerId, userId,

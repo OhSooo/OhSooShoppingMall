@@ -7,6 +7,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.store.entity.StoreDeliveryPo
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Objects;
 
 @Component
 public class StoreMapper {
@@ -65,31 +66,23 @@ public class StoreMapper {
     }
 
     public StoreDetailResponse toStoreDetailResponse(
-            Store store,
-            List<StoreBanner> banners,
-            StoreDeliveryPolicy deliveryPolicy
+            StoreProfileResponse profile,
+            List<StoreBannerResponse> banners,
+            StoreDeliveryPolicyResponse deliveryPolicy
     ) {
-        List<StoreBannerResponse> bannerResponses = banners.stream()
-                .map(this::toStoreBannerResponse)
-                .toList();
-
-        StoreDeliveryPolicyResponse policyResponse = deliveryPolicy != null
-                ? toStoreDeliveryPolicyResponse(deliveryPolicy)
-                : null;
-
         return StoreDetailResponse.builder()
-                .storeId(store.getStoreId())
-                .ownerId(store.getOwnerId())
-                .name(store.getName())
-                .description(store.getDescription())
-                .notice(store.getNotice())
-                .mainImageUrl(store.getMainImageUrl())
-                .status(store.getStatus())
-                .operationStatus(store.getOperationStatus())
-                .banners(bannerResponses)
-                .deliveryPolicy(policyResponse)
-                .createdAt(store.getCreatedAt())
-                .updatedAt(store.getUpdatedAt())
+                .storeId(profile.getStoreId())
+                .ownerId(profile.getOwnerId())
+                .name(profile.getName())
+                .description(profile.getDescription())
+                .notice(profile.getNotice())
+                .mainImageUrl(profile.getMainImageUrl())
+                .status(profile.getStatus())
+                .operationStatus(profile.getOperationStatus())
+                .banners(Objects.requireNonNullElseGet(banners, List::of))
+                .deliveryPolicy(deliveryPolicy)
+                .createdAt(profile.getCreatedAt())
+                .updatedAt(profile.getUpdatedAt())
                 .build();
     }
 }
