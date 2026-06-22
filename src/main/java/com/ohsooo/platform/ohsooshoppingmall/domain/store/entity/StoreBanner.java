@@ -64,7 +64,7 @@ public class StoreBanner {
         this.updatedAt = OffsetDateTime.now();
     }
 
-    public void update(String imageUrl, String linkUrl, String title, Integer sortOrder, Boolean isActive) {
+    public void update(String imageUrl, String linkUrl, String title, Boolean isActive) {
         if (imageUrl != null) {
             this.imageUrl = imageUrl;
         }
@@ -74,12 +74,13 @@ public class StoreBanner {
         if (title != null) {
             this.title = title;
         }
-        if (sortOrder != null) {
-            this.sortOrder = sortOrder;
-        }
         if (isActive != null) {
             this.isActive = isActive;
         }
+    }
+
+    public void updateSortOrder(int sortOrder) {
+        this.sortOrder = sortOrder;
     }
 
     public void deactivate() {

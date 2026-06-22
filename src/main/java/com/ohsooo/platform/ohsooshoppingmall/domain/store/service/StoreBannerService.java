@@ -11,7 +11,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -23,27 +27,65 @@ public class StoreBannerService {
     private final StoreMapper storeMapper;
 
     public StoreBannerResponse createBanner(Long storeId, Long ownerId,
-                                            String imageUrl, String linkUrl, String title, Integer sortOrder) {
+                                            String imageUrl, String linkUrl, String title) {
         Store store = storeService.getStoreEntity(storeId);
         validateOwner(store, ownerId);
 
-        int order = sortOrder != null ? sortOrder : 0;
-        StoreBanner banner = new StoreBanner(store, imageUrl, linkUrl, title, order);
+        int nextSortOrder = storeBannerRepository.findMaxSortOrderByStoreId(storeId) + 1;
+        StoreBanner banner = new StoreBanner(store, imageUrl, linkUrl, title, nextSortOrder);
         StoreBanner saved = storeBannerRepository.save(banner);
         return storeMapper.toStoreBannerResponse(saved);
     }
 
     public StoreBannerResponse updateBanner(Long storeId, Long bannerId, Long ownerId,
                                             String imageUrl, String linkUrl, String title,
-                                            Integer sortOrder, Boolean isActive) {
+                                            Boolean isActive) {
         Store store = storeService.getStoreEntity(storeId);
         validateOwner(store, ownerId);
 
         StoreBanner banner = getBannerEntity(bannerId);
         validateBannerBelongsToStore(banner, storeId);
 
-        banner.update(imageUrl, linkUrl, title, sortOrder, isActive);
+        banner.update(imageUrl, linkUrl, title, isActive);
         return storeMapper.toStoreBannerResponse(banner);
+    }
+
+    public List<StoreBannerResponse> reorderBanners(Long storeId, Long ownerId, List<Long> bannerIds) {
+        Store store = storeService.getStoreEntity(storeId);
+        validateOwner(store, ownerId);
+
+        if (new HashSet<>(bannerIds).size() != bannerIds.size()) {
+            throw new BusinessException(StoreErrorCode.STORE_BANNER_ORDER_DUPLICATED);
+        }
+
+        List<StoreBanner> banners = storeBannerRepository.findAllByStoreBannerIdIn(bannerIds);
+
+        if (banners.size() != bannerIds.size()) {
+            throw new BusinessException(StoreErrorCode.STORE_BANNER_NOT_FOUND);
+        }
+
+        Map<Long, StoreBanner> bannerMap = banners.stream()
+                .collect(Collectors.toMap(StoreBanner::getStoreBannerId, Function.identity()));
+
+        for (StoreBanner banner : banners) {
+            if (!banner.getStore().getStoreId().equals(storeId)) {
+                throw new BusinessException(StoreErrorCode.STORE_BANNER_NOT_BELONG_TO_STORE);
+            }
+            if (!banner.isActive()) {
+                throw new BusinessException(StoreErrorCode.STORE_BANNER_INACTIVE_CANNOT_REORDER);
+            }
+        }
+
+        for (int i = 0; i < bannerIds.size(); i++) {
+            StoreBanner banner = bannerMap.get(bannerIds.get(i));
+            banner.updateSortOrder(i);
+        }
+
+        return storeBannerRepository
+                .findAllByStore_StoreIdAndIsActiveTrueOrderBySortOrderAsc(storeId)
+                .stream()
+                .map(storeMapper::toStoreBannerResponse)
+                .toList();
     }
 
     public void deactivateBanner(Long storeId, Long bannerId, Long ownerId) {

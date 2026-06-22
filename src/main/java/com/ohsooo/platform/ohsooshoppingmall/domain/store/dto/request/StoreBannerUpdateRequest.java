@@ -1,7 +1,6 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.store.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,10 +21,6 @@ public class StoreBannerUpdateRequest {
     @Size(max = 255, message = "배너 제목은 255자 이내여야 합니다")
     @Schema(description = "배너 제목", example = "여름 세일 이벤트")
     private String title;
-
-    @PositiveOrZero(message = "정렬 순서는 0 이상이어야 합니다")
-    @Schema(description = "정렬 순서", example = "1")
-    private Integer sortOrder;
 
     @Schema(description = "활성 여부", example = "true")
     private Boolean isActive;
