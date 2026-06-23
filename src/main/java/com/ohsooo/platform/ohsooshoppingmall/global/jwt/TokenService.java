@@ -1,5 +1,7 @@
 package com.ohsooo.platform.ohsooshoppingmall.global.jwt;
 
+import com.ohsooo.platform.ohsooshoppingmall.domain.identity.auth.exception.AuthErrorCode;
+import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
 import java.time.Duration;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -31,14 +33,14 @@ public class TokenService {
   /* AccessToken 재발급 */
   public TokenResponse reissue(Long userId, String refreshToken, Map<String, Object> accessClaims) {
     if (!jwtProvider.isValid(refreshToken)) {
-      throw new IllegalArgumentException("Invalid refresh token");
+      throw new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN);
     }
 
     String saved = refreshTokenStore.find(userId)
-        .orElseThrow(() -> new IllegalArgumentException("Refresh token not found"));
+        .orElseThrow(() -> new BusinessException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND));
 
     if (!saved.equals(refreshToken)) {
-      throw new IllegalArgumentException("Refresh token mismatch");
+      throw new BusinessException(AuthErrorCode.REFRESH_TOKEN_MISMATCH);
     }
 
     return issueTokens(userId, accessClaims);
