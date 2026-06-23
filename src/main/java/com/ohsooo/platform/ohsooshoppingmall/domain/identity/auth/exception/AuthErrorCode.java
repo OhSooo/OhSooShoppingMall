@@ -21,7 +21,11 @@ public enum AuthErrorCode implements BaseErrorCode {
 
   EMAIL_VERIFICATION_CODE_EXPIRED(HttpStatus.BAD_REQUEST, "AUTH_4003", "인증번호가 만료되었습니다."),
   EMAIL_VERIFICATION_CODE_MISMATCH(HttpStatus.BAD_REQUEST, "AUTH_4004", "인증번호가 올바르지 않습니다."),
-  EMAIL_NOT_VERIFIED(HttpStatus.BAD_REQUEST, "AUTH_4005", "이메일 인증이 필요합니다.");
+  EMAIL_NOT_VERIFIED(HttpStatus.BAD_REQUEST, "AUTH_4005", "이메일 인증이 필요합니다."),
+
+  INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_4013", "유효하지 않은 리프레시 토큰입니다."),
+  REFRESH_TOKEN_NOT_FOUND(HttpStatus.UNAUTHORIZED, "AUTH_4014", "리프레시 토큰이 존재하지 않습니다."),
+  REFRESH_TOKEN_MISMATCH(HttpStatus.UNAUTHORIZED, "AUTH_4015", "리프레시 토큰이 일치하지 않습니다.");
 
 
   private final HttpStatus status;
