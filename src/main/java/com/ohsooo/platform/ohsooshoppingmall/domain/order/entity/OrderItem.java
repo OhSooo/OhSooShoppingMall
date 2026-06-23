@@ -46,15 +46,25 @@ public class OrderItem {
   @Column(name = "price_at_purchase", nullable = false, precision = 19, scale = 2)
   private BigDecimal priceAtPurchase;
 
-  private OrderItem(ItemVariant itemVariant, int quantity, BigDecimal priceAtPurchase) {
+  @Column(name = "product_name", length = 255)
+  private String productName;
+
+  @Column(name = "option_summary", length = 255)
+  private String optionSummary;
+
+  private OrderItem(ItemVariant itemVariant, int quantity, BigDecimal priceAtPurchase,
+      String productName, String optionSummary) {
     this.itemVariant = itemVariant;
     this.quantity = Math.max(quantity, 1);
     this.priceAtPurchase = (priceAtPurchase == null) ? BigDecimal.ZERO : priceAtPurchase;
     this.status = OrderItemStatus.ORDERED;
+    this.productName = productName;
+    this.optionSummary = (optionSummary == null) ? "" : optionSummary;
   }
 
-  public static OrderItem of(ItemVariant itemVariant, int quantity, BigDecimal priceAtPurchase) {
-    return new OrderItem(itemVariant, quantity, priceAtPurchase);
+  public static OrderItem of(ItemVariant itemVariant, int quantity, BigDecimal priceAtPurchase,
+      String productName, String optionSummary) {
+    return new OrderItem(itemVariant, quantity, priceAtPurchase, productName, optionSummary);
   }
 
   void attachTo(Order order) {

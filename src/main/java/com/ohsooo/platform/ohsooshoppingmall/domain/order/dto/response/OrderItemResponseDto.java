@@ -17,6 +17,9 @@ public class OrderItemResponseDto {
 
   private String itemName;
 
+  /** 구매 당시 옵션 조합 스냅샷 (예: "블랙/L") */
+  private String optionSummary;
+
   /** 구매 당시 가격 스냅샷 */
   private BigDecimal priceAtPurchase;
 

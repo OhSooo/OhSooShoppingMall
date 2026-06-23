@@ -90,7 +90,10 @@ public class OrderMapper {
     Long itemId = (item != null) ? item.getItemId() : null;
     Long variantId = (v != null) ? v.getItemVariantId() : null;
     String sku = (v != null) ? v.getSku() : null;
-    String itemName = (item != null) ? item.getName() : null;
+    String itemName = (oi.getProductName() != null && !oi.getProductName().isEmpty())
+        ? oi.getProductName()
+        : (item != null ? item.getName() : null);
+    String optionSummary = oi.getOptionSummary();
 
     List<OrderItemOptionResponseDto> optionDtos = new ArrayList<>();
     if (v != null && v.getItemVariantOptions() != null) {
@@ -111,6 +114,7 @@ public class OrderMapper {
         variantId,
         sku,
         itemName,
+        optionSummary,
         oi.getPriceAtPurchase(),
         oi.getQuantity(),
         optionDtos,
