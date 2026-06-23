@@ -41,6 +41,9 @@ public class SecurityConfig {
 
             .authorizeHttpRequests(auth -> auth
 
+                // health
+                .requestMatchers("/health/**").permitAll()
+
                 // swagger
                 .requestMatchers(
                     "/v3/api-docs/**",
@@ -134,7 +137,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PATCH, "/admin/stores/*/status")
                 .hasRole("ADMIN")
 
-                .anyRequest().permitAll()
+                .anyRequest().authenticated()
             )
 
             .formLogin(form -> form.disable())
