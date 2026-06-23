@@ -9,6 +9,8 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.request.ItemUpda
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.AddVariantsResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemCreateResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemCreateResponseDto.VariantResult;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemDetailResponse;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemImageResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.dto.response.ItemResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Category;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Item;
@@ -20,8 +22,10 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemV
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.exception.CatalogErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.exception.CategoryErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.exception.ItemErrorCode;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.mapper.ItemImageMapper;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.mapper.ItemMapper;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.CategoryRepository;
+import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemImageRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemVariantOptionRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemVariantRepository;
@@ -50,6 +54,8 @@ public class ItemService {
 
     private final ItemRepository itemRepository;
     private final ItemMapper itemMapper;
+    private final ItemImageMapper itemImageMapper;
+    private final ItemImageRepository itemImageRepository;
     private final CategoryRepository categoryRepository;
     private final StoreRepository storeRepository;
     private final OptionRepository optionRepository;
@@ -308,8 +314,14 @@ public class ItemService {
 
     // 단건 조회
     @Transactional(readOnly = true)
-    public ItemResponse getItemById(Long id) {
-        return itemMapper.toResponse(getActiveItem(id));
+    public ItemDetailResponse getItemById(Long id) {
+        Item item = getActiveItem(id);
+        List<ItemImageResponse> images = itemImageRepository
+                .findByItem_ItemIdOrderByDisplayOrderAscItemImageIdAsc(id)
+                .stream()
+                .map(itemImageMapper::toResponse)
+                .toList();
+        return itemMapper.toDetailResponse(item, images);
     }
 
     // 카테고리 기준 조회
