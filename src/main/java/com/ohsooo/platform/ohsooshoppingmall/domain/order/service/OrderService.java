@@ -204,7 +204,8 @@ public class OrderService {
     for (CartItem ci : cart.getCartItems()) {
       ItemVariant variant = ci.getItemVariant();
       int qty = ci.getQuantity();
-      result.add(OrderItem.of(variant, qty, variant.getPrice()));
+      result.add(OrderItem.of(variant, qty, variant.getPrice(),
+          snapshotProductName(variant), snapshotOptionSummary(variant)));
     }
     cart.clear();
     return result;
@@ -231,7 +232,8 @@ public class OrderService {
       if (!targets.contains(ci.getCartItemId())) continue;
       ItemVariant variant = ci.getItemVariant();
       int qty = ci.getQuantity();
-      result.add(OrderItem.of(variant, qty, variant.getPrice()));
+      result.add(OrderItem.of(variant, qty, variant.getPrice(),
+          snapshotProductName(variant), snapshotOptionSummary(variant)));
       variantIdsToRemove.add(variant.getItemVariantId());
       foundIds.add(ci.getCartItemId());
     }
@@ -255,9 +257,23 @@ public class OrderService {
     for (OrderItemCreateRequestDto dto : items) {
       ItemVariant variant = itemVariantRepository.findById(dto.getItemVariantId())
           .orElseThrow(() -> new BusinessException(CatalogErrorCode.ITEM_VARIANT_NOT_FOUND));
-      result.add(OrderItem.of(variant, dto.getQuantity(), variant.getPrice()));
+      result.add(OrderItem.of(variant, dto.getQuantity(), variant.getPrice(),
+          snapshotProductName(variant), snapshotOptionSummary(variant)));
     }
     return result;
+  }
+
+  private String snapshotProductName(ItemVariant variant) {
+    if (variant == null || variant.getItem() == null) return "";
+    return variant.getItem().getName();
+  }
+
+  private String snapshotOptionSummary(ItemVariant variant) {
+    if (variant == null || variant.getItemVariantOptions() == null
+        || variant.getItemVariantOptions().isEmpty()) return "";
+    return variant.getItemVariantOptions().stream()
+        .map(ivo -> ivo.getOption().getValue())
+        .collect(Collectors.joining("/"));
   }
 
   private String buildOrderSummary(Order order) {
