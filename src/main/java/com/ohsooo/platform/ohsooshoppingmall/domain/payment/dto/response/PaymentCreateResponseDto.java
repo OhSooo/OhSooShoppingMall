@@ -44,4 +44,7 @@ public class PaymentCreateResponseDto {
 
   @Schema(description = "구매자명(결제창 표시용, 선택)", example = "Soojin")
   private String customerName;
+
+  @Schema(description = "Toss 결제창에 사용할 고유 orderId", example = "PAY-A3F8B2C1D4E5F6A78B9C")
+  private String tossOrderId;
 }

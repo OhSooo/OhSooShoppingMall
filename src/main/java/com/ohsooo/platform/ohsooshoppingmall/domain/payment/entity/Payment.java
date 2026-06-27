@@ -79,6 +79,9 @@ public class Payment extends BaseTimeEntity {
   @Column(name = "fail_reason", length = 2000)
   private String failReason;
 
+  @Column(name = "toss_order_id", length = 64)
+  private String tossOrderId;
+
   /**
    * 결제 시작 시 READY 상태의 Payment를 생성한다.
    */
@@ -87,7 +90,8 @@ public class Payment extends BaseTimeEntity {
       BigDecimal amount,
       String currency,
       PaymentMethod method,
-      PaymentProvider provider
+      PaymentProvider provider,
+      String tossOrderId
   ) {
     Payment p = new Payment();
     p.orderId = orderId;
@@ -97,6 +101,7 @@ public class Payment extends BaseTimeEntity {
     p.provider = provider;
     p.status = PaymentStatus.READY;
     p.requestedAt = OffsetDateTime.now();
+    p.tossOrderId = tossOrderId;
     return p;
   }
 
