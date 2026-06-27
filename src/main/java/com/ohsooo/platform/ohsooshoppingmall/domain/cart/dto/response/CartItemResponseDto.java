@@ -17,6 +17,10 @@ public class CartItemResponseDto {
   private String itemName;
   private BigDecimal price;
 
+  // 스토어 정보
+  private Long storeId;
+  private String storeName;
+
   // 옵션 응답 형태
   private Set<CartItemOptionResponseDto> options;
 
