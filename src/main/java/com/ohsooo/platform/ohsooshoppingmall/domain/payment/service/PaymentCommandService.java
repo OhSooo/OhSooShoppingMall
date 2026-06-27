@@ -23,9 +23,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PaymentCommandService {
@@ -56,12 +58,19 @@ public class PaymentCommandService {
       throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_AMOUNT);
     }
 
-    // [P-2] CONFIRMING도 포함 — PG 호출 중인 결제가 있으면 중복 생성 차단
+    // PG 호출 중이거나 이미 결제 완료면 차단
     if (paymentRepository.existsByOrderIdAndStatusIn(
         request.getOrderId(),
-        List.of(PaymentStatus.READY, PaymentStatus.CONFIRMING, PaymentStatus.CAPTURED))) {
+        List.of(PaymentStatus.CONFIRMING, PaymentStatus.CAPTURED))) {
       throw new BusinessException(PaymentErrorCode.DUPLICATE_PAYMENT);
     }
+
+    // READY 결제가 있으면 무효화 — 결제 재시도마다 새 paymentId/Toss orderId 보장
+    paymentRepository.findTopByOrderIdAndStatus(request.getOrderId(), PaymentStatus.READY)
+        .ifPresent(old -> {
+          old.markFailed("결제 재시도로 인해 취소됨");
+          paymentRepository.save(old);
+        });
 
     Payment payment = paymentMapper.toReadyPaymentEntity(request);
     Payment saved = paymentRepository.save(payment);
@@ -106,11 +115,14 @@ public class PaymentCommandService {
     PgClient pgClient = pgClientRouter.route(payment.getProvider());
     int tossAmount = toKrwIntegerAmount(payment.getAmount());
 
+    String tossOrderId = String.format("PAY%06d", payment.getPaymentId());
     TossApproveRequest approveRequest = new TossApproveRequest(
         request.getPaymentKey(),
-        String.valueOf(payment.getOrderId()),
+        tossOrderId,
         tossAmount
     );
+    log.info("[confirmPayment] → Toss approve tossOrderId={} amount={} paymentKey={}",
+        tossOrderId, tossAmount, request.getPaymentKey());
 
     try {
       PgApproveResponse resp = pgClient.approve(approveRequest);
