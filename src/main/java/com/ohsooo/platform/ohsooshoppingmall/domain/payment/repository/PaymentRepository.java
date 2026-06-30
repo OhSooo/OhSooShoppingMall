@@ -25,6 +25,9 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
   /** 동일 주문에 READY/CAPTURED 결제가 이미 있는지 확인 (P-2 중복 방지) */
   boolean existsByOrderIdAndStatusIn(Long orderId, List<PaymentStatus> statuses);
 
+  /** 재시도 시 기존 READY 결제 무효화용 */
+  Optional<Payment> findTopByOrderIdAndStatus(Long orderId, PaymentStatus status);
+
   /** 동시 confirm 요청 방어를 위한 비관적 쓰기 락 조회 (P-3) */
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT p FROM Payment p WHERE p.paymentId = :paymentId")

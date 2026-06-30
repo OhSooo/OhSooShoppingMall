@@ -6,6 +6,8 @@ import java.time.OffsetDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * 결제 관련 이벤트 로그 엔티티.
@@ -37,6 +39,7 @@ public class PaymentEvent {
   @Column(name = "event_type", nullable = false)
   private PaymentEventType eventType;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "payload_json", nullable = false, columnDefinition = "jsonb")
   private String payloadJson;
 
