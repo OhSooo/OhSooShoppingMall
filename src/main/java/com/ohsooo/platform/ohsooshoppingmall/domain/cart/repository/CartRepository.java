@@ -17,6 +17,7 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
       "cartItems",
       "cartItems.itemVariant",
       "cartItems.itemVariant.item",
+      "cartItems.itemVariant.item.store",
       "cartItems.itemVariant.itemVariantOptions",
       "cartItems.itemVariant.itemVariantOptions.option"
   })

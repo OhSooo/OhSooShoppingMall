@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 public class PaymentMapper {
 
   /** 결제 준비(READY) 엔티티 생성 */
-  public Payment toReadyPaymentEntity(PaymentCreateRequestDto request) {
+  public Payment toReadyPaymentEntity(PaymentCreateRequestDto request, String tossOrderId) {
     if (request == null) return null;
 
     return Payment.ready(
@@ -21,7 +21,8 @@ public class PaymentMapper {
         request.getAmount(),
         request.getCurrency(),
         request.getMethod(),
-        request.getProvider()
+        request.getProvider(),
+        tossOrderId
     );
   }
 
@@ -39,7 +40,8 @@ public class PaymentMapper {
         payment.getProvider(),
         payment.getRequestedAt(),
         request != null ? request.getOrderName() : null,
-        request != null ? request.getCustomerName() : null
+        request != null ? request.getCustomerName() : null,
+        payment.getTossOrderId()
     );
   }
 

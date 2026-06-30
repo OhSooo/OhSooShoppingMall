@@ -52,6 +52,8 @@ public class CartMapper {
         variant.getItemVariantId(),
         item.getName(),
         variant.getPrice(), // BigDecimal
+        item.getStore().getStoreId(),
+        item.getStore().getName(),
         options,
         cartItem.getQuantity(),
         saleable

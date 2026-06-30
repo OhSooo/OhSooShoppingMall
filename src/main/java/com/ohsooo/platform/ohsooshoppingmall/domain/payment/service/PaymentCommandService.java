@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -72,7 +73,8 @@ public class PaymentCommandService {
           paymentRepository.save(old);
         });
 
-    Payment payment = paymentMapper.toReadyPaymentEntity(request);
+    String tossOrderId = "PAY-" + UUID.randomUUID().toString().replace("-", "").toUpperCase();
+    Payment payment = paymentMapper.toReadyPaymentEntity(request, tossOrderId);
     Payment saved = paymentRepository.save(payment);
 
     return paymentMapper.toCreateResponseDto(saved, request);
@@ -115,7 +117,7 @@ public class PaymentCommandService {
     PgClient pgClient = pgClientRouter.route(payment.getProvider());
     int tossAmount = toKrwIntegerAmount(payment.getAmount());
 
-    String tossOrderId = String.format("PAY%06d", payment.getPaymentId());
+    String tossOrderId = payment.getTossOrderId();
     TossApproveRequest approveRequest = new TossApproveRequest(
         request.getPaymentKey(),
         tossOrderId,
