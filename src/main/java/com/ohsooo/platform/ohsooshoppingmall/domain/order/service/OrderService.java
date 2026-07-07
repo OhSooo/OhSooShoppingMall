@@ -168,24 +168,33 @@ public class OrderService {
       throw new BusinessException(OrderErrorCode.ORDER_ITEM_NOT_CANCELABLE);
     }
 
+    Long itemVariantId = oi.getItemVariant().getItemVariantId();
+    int quantity = oi.getQuantity();
+
     OrderItemStatus prev = oi.getStatus();
     oi.changeStatus(OrderItemStatus.CANCELED);
 
-    inventoryService.increaseStock(oi.getItemVariant().getItemVariantId(), oi.getQuantity());
+    Order order = oi.getOrder();
+    order.recalculateAmounts();
+
+    // CREATED(결제 전)에서 시작해 부분취소가 여러 번 거쳐도(PARTIALLY_CANCELED) 계속 전환 대상이어야 함
+    if (order.getStatus() == OrderStatus.CREATED || order.getStatus() == OrderStatus.PARTIALLY_CANCELED) {
+      boolean allCanceled = order.getOrderItems().stream()
+          .allMatch(item -> item.getStatus() == OrderItemStatus.CANCELED);
+      order.changeStatus(allCanceled ? OrderStatus.CANCELED : OrderStatus.PARTIALLY_CANCELED);
+    }
 
     OrderItemHistory history = OrderItemHistory.create(oi, prev, oi.getStatus(), OrderChangedBy.GENERAL);
     orderItemHistoryRepository.save(history);
 
-    Order order = oi.getOrder();
-    if (order.getStatus() == OrderStatus.CREATED) {
-      boolean allCanceled = order.getOrderItems().stream()
-          .allMatch(item -> item.getStatus() == OrderItemStatus.CANCELED);
-      if (allCanceled) {
-        order.changeStatus(OrderStatus.CANCELED);
-      }
-    }
+    OrderItemResponseDto response = orderMapper.toOrderItemResponseDto(oi);
 
-    return orderMapper.toOrderItemResponseDto(oi);
+    // increaseStock()은 내부적으로 @Modifying(clearAutomatically=true)라 영속성 컨텍스트를 비운다.
+    // 위에서 Order/OrderItem 엔티티 작업과 응답 DTO 계산을 모두 마친 뒤 가장 마지막에 호출해야
+    // 이후 지연 로딩(LazyInitializationException) 없이 안전하다.
+    inventoryService.increaseStock(itemVariantId, quantity);
+
+    return response;
   }
 
   // -------------------------

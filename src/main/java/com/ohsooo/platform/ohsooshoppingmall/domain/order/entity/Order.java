@@ -147,6 +147,31 @@ public class Order {
     this.finalPrice = result.finalPrice();
   }
 
+  /**
+   * 부분 취소 후 금액 재계산.
+   * CANCELED/REFUNDED 상태가 아닌 나머지 OrderItem의 priceAtPurchase(구매 당시 스냅샷 가격) 합으로
+   * originalTotalPrice/finalPrice를 다시 계산한다. ItemVariant의 현재 판매가를 다시 조회하지 않는다 —
+   * 그 사이 가격이 바뀌었을 수 있어 구매 당시 금액과 달라질 수 있기 때문.
+   */
+  public void recalculateAmounts() {
+    BigDecimal remainingTotal = this.orderItems.stream()
+        .filter(oi -> oi.getStatus() != OrderItemStatus.CANCELED
+            && oi.getStatus() != OrderItemStatus.REFUNDED)
+        .map(oi -> oi.getPriceAtPurchase().multiply(BigDecimal.valueOf(oi.getQuantity())))
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+    this.originalTotalPrice = remainingTotal;
+    this.finalPrice = remainingTotal.subtract(this.discountAmount).add(this.deliveryFee);
+  }
+
+  /**
+   * 환불된 금액만큼 finalPrice에서 차감.
+   * 부분 환불이 여러 번 걸쳐 발생해도 매번 해당 환불액만큼만 차감하므로 누적이 자동으로 반영된다.
+   */
+  public void reduceFinalPriceForRefund(BigDecimal refundedAmount) {
+    this.finalPrice = this.finalPrice.subtract(refundedAmount);
+  }
+
   public boolean isOwnedBy(Long userId) {
     return this.user != null
         && this.user.getUserId() != null
