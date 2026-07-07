@@ -40,7 +40,7 @@ public class PaymentConfirmHelper {
    * 이 메서드가 반환되면 DB 커넥션이 반환됨.
    *
    * 이미 CAPTURED 상태라면(직전 confirm 응답 전 네트워크 단절 후 재시도) 상태 전환 없이
-   * 그대로 반환한다 — 호출부에서 PG 재호출 없이 기존 결제 정보로 성공 응답을 만든다. (P-12)
+   * 그대로 반환한다 — 호출부에서 PG 재호출 없이 기존 결제 정보로 성공 응답을 만든다.
    */
   @Transactional
   public Payment lockAndMarkConfirming(Long paymentId, Long userId, String confirmEventJson) {
