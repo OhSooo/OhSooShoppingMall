@@ -105,6 +105,12 @@ public class PaymentCommandService {
     // TX1: 비관적 락 조회 → 소유 검증 → CONFIRMING 전환 → 커밋 → 커넥션 반환
     Payment payment = confirmHelper.lockAndMarkConfirming(paymentId, userId, confirmEventJson);
 
+    // 이미 CAPTURED(직전 요청이 성공했으나 응답 전 단절되어 재시도된 경우) — PG 재호출 없이 멱등 응답
+    if (payment.getStatus() == PaymentStatus.CAPTURED) {
+      log.info("[confirmPayment] already captured, returning idempotent response paymentId={}", paymentId);
+      return paymentMapper.toConfirmResponseDto(payment);
+    }
+
     // 클라이언트 금액 vs DB 저장 금액 검증 (detached entity의 단순 필드 읽기 — 안전)
     if (request.getAmount() != null && payment.getAmount() != null) {
       if (payment.getAmount().compareTo(request.getAmount()) != 0) {
