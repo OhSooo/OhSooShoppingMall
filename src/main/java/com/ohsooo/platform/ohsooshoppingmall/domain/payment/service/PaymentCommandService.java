@@ -52,7 +52,8 @@ public class PaymentCommandService {
       throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_AMOUNT);
     }
 
-    Order order = orderRepository.findByOrderIdAndUser_UserId(request.getOrderId(), userId)
+    // 비관적 락 — 동일 주문에 대한 동시 createPayment 호출을 직렬화해 중복 READY 생성을 방지 (#52)
+    Order order = orderRepository.findByOrderIdAndUser_UserIdWithLock(request.getOrderId(), userId)
         .orElseThrow(() -> new BusinessException(OrderErrorCode.ORDER_NOT_FOUND));
 
     if (request.getAmount().compareTo(order.getFinalPrice()) != 0) {
