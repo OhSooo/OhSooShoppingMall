@@ -44,6 +44,9 @@ public class TossPgClient implements PgClient {
           .uri("/v1/payments/confirm")
           .contentType(MediaType.APPLICATION_JSON)
           .header(HttpHeaders.AUTHORIZATION, buildBasicAuth(pgProperties.getToss().getSecretKey()))
+          // orderId(tossOrderId)는 결제 생성 시 한 번 발급되어 해당 Payment의 confirm 재시도 내내 동일하므로
+          // 재시도 시에도 Toss가 같은 요청으로 인지하도록 Idempotency-Key로 그대로 사용
+          .header("Idempotency-Key", request.getOrderId())
           .body(request)
           .retrieve()
           .body(TossApproveResponse.class);
