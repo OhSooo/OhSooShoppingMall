@@ -1,0 +1,13 @@
+package com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.response;
+
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@Getter
+@AllArgsConstructor
+public class CartMergeResponseDto {
+
+  private CartResponseDto cart;
+  private List<CartMergeSkippedItemDto> skippedItems;
+}
