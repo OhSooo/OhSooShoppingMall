@@ -2,6 +2,8 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.cart.controller;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.request.CartItemAddRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.request.CartItemUpdateRequestDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.request.CartMergeRequestDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.response.CartMergeResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.response.CartResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.service.CartService;
 import com.ohsooo.platform.ohsooshoppingmall.global.response.BaseResponse;
@@ -48,6 +50,24 @@ public class CartController {
   ) {
     CartResponseDto response = cartService.addItem(userId, request);
     return ResponseEntity.ok(BaseResponse.success("장바구니 추가 성공", response));
+  }
+
+  @Operation(
+      summary = "비로그인 장바구니 병합",
+      description = """
+          로그인 성공 시 프론트엔드 로컬(비로그인) 장바구니 목록을 서버 장바구니로 병합합니다.
+
+          - 이미 담긴 상품은 수량을 합산합니다.
+          - 품절/판매중지/재고초과 상품은 해당 항목만 병합에서 제외되고, 사유와 함께 skippedItems로 안내됩니다.
+          """
+  )
+  @PostMapping("/merge")
+  public ResponseEntity<BaseResponse<CartMergeResponseDto>> mergeGuestCart(
+      @AuthenticationPrincipal Long userId,
+      @Valid @RequestBody CartMergeRequestDto request
+  ) {
+    CartMergeResponseDto response = cartService.mergeGuestCart(userId, request);
+    return ResponseEntity.ok(BaseResponse.success("장바구니 병합 성공", response));
   }
 
   @Operation(
