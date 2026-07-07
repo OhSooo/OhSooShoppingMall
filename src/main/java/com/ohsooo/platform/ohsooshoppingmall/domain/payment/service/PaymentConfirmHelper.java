@@ -8,6 +8,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.order.exception.OrderErrorCo
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.repository.OrderRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.Payment;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.enums.PaymentEventType;
+import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.enums.PaymentStatus;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.exception.PaymentErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.provider.pgdto.response.PgApproveResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.repository.PaymentRepository;
@@ -37,6 +38,9 @@ public class PaymentConfirmHelper {
   /**
    * TX1: 비관적 락 조회 → 소유 검증 → READY 검증 → CONFIRMING 전환 → 이벤트 저장 → 커밋.
    * 이 메서드가 반환되면 DB 커넥션이 반환됨.
+   *
+   * 이미 CAPTURED 상태라면(직전 confirm 응답 전 네트워크 단절 후 재시도) 상태 전환 없이
+   * 그대로 반환한다 — 호출부에서 PG 재호출 없이 기존 결제 정보로 성공 응답을 만든다. (P-12)
    */
   @Transactional
   public Payment lockAndMarkConfirming(Long paymentId, Long userId, String confirmEventJson) {
@@ -45,6 +49,10 @@ public class PaymentConfirmHelper {
 
     orderRepository.findByOrderIdAndUser_UserId(payment.getOrderId(), userId)
         .orElseThrow(() -> new BusinessException(OrderErrorCode.ORDER_NOT_FOUND));
+
+    if (payment.getStatus() == PaymentStatus.CAPTURED) {
+      return payment;
+    }
 
     paymentStateValidator.validateConfirmable(payment);
     payment.markConfirming();
