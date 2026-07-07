@@ -1,5 +1,7 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.payment.service;
 
+import com.ohsooo.platform.ohsooshoppingmall.domain.order.entity.Order;
+import com.ohsooo.platform.ohsooshoppingmall.domain.order.entity.OrderStatus;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.exception.OrderErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.repository.OrderRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.dto.request.RefundCreateRequestDto;
@@ -49,7 +51,7 @@ public class RefundCommandService {
         .orElseThrow(() -> new BusinessException(PaymentErrorCode.PAYMENT_NOT_FOUND));
 
     // 주문 소유 검증
-    orderRepository.findByOrderIdAndUser_UserId(payment.getOrderId(), userId)
+    Order order = orderRepository.findByOrderIdAndUser_UserId(payment.getOrderId(), userId)
         .orElseThrow(() -> new BusinessException(OrderErrorCode.ORDER_NOT_FOUND));
 
     // [P-7] CAPTURED 상태일 때만 환불 가능
@@ -86,10 +88,16 @@ public class RefundCommandService {
 
       savedRefund.markSucceeded();
 
-      // 전액 환불이면 Payment를 REFUNDED로 전환
+      // 환불된 금액만큼 Order.finalPrice 차감 (누적은 매 환불마다 그만큼씩 차감되어 자동 반영됨)
+      order.reduceFinalPriceForRefund(request.getAmount());
+
+      // 전액 환불이면 Payment를 REFUNDED로, Order는 CANCELED로 전환. 아니면 Order는 PARTIALLY_REFUNDED
       BigDecimal totalRefunded = alreadyRefunded.add(request.getAmount());
       if (totalRefunded.compareTo(payment.getAmount()) == 0) {
         payment.markRefunded();
+        order.changeStatus(OrderStatus.CANCELED);
+      } else {
+        order.changeStatus(OrderStatus.PARTIALLY_REFUNDED);
       }
 
     } catch (BusinessException be) {
