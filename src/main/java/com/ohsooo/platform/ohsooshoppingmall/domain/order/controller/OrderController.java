@@ -28,7 +28,7 @@ public class OrderController {
   /**
    * 주문 생성
    * - CART_ALL: 장바구니 전체 주문
-   * - CART_SELECTED: 장바구니 선택 주문(cartItemIds)
+   * - CART_SELECTED: 장바구니 선택 주문(itemVariantIds)
    * - DIRECT: 바로 주문(items)
    */
   @Operation(
@@ -37,7 +37,7 @@ public class OrderController {
           주문을 생성합니다.
 
           - CART_ALL: 내 장바구니 전체를 주문합니다.
-          - CART_SELECTED: cartItemIds에 담긴 장바구니 상품만 선택 주문합니다.
+          - CART_SELECTED: itemVariantIds에 담긴 장바구니 상품만 선택 주문합니다.
           - DIRECT: items(variantId/quantity) 기반으로 즉시 주문합니다. (장바구니 미경유)
 
           주문 생성 시점에 priceAtPurchase(구매 당시 가격) / totalPrice를 확정 저장하는 것을 권장합니다.

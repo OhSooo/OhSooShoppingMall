@@ -10,7 +10,6 @@ import lombok.Getter;
 public class CartItemResponseDto {
 
   // 장바구니 식별
-  private Long cartItemId;
   private Long itemVariantId;
 
   // 화면 표시용

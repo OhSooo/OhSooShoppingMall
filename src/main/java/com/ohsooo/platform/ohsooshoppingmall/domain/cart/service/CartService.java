@@ -1,5 +1,6 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.cart.service;
 
+import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.CartLineItem;
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.request.CartItemAddRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.request.CartItemUpdateRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.request.CartMergeRequestDto;
@@ -7,66 +8,51 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.request.CartMergeRe
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.response.CartMergeResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.response.CartMergeSkippedItemDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.response.CartResponseDto;
-import com.ohsooo.platform.ohsooshoppingmall.domain.cart.entity.Cart;
-import com.ohsooo.platform.ohsooshoppingmall.domain.cart.entity.CartItem;
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.exception.CartErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.mapper.CartMapper;
-import com.ohsooo.platform.ohsooshoppingmall.domain.cart.repository.CartItemRepository;
-import com.ohsooo.platform.ohsooshoppingmall.domain.cart.repository.CartRepository;
+import com.ohsooo.platform.ohsooshoppingmall.domain.cart.repository.CartRedisRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariant;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariantStatus;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository.ItemVariantRepository;
-import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.entity.User;
-import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.repository.UserRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.inventory.dto.response.StockResponse;
 import com.ohsooo.platform.ohsooshoppingmall.domain.inventory.service.InventoryService;
 import com.ohsooo.platform.ohsooshoppingmall.global.exception.BaseErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
-import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class CartService {
 
-  private final CartRepository cartRepository;
-  private final CartItemRepository cartItemRepository;
+  private final CartRedisRepository cartRedisRepository;
   private final ItemVariantRepository itemVariantRepository;
-  private final UserRepository userRepository;
   private final InventoryService inventoryService;
   private final CartMapper cartMapper;
 
   /**
    * 내 장바구니 조회
-   * - Cart가 없으면 DB에 생성하지 않고 빈 배열 반환
+   * - 카트가 없으면(Redis에 키가 없으면) 빈 배열 반환
    */
-  @Transactional(readOnly = true)
   public CartResponseDto getMyCart(Long userId) {
     validateAuthPrincipal(userId);
-
-    return cartRepository.findWithItemsByUser_UserId(userId)
-        .map(cartMapper::toCartResponseDto)
-        .orElseGet(() -> new CartResponseDto(null, userId, BigDecimal.ZERO, Collections.emptyList()));
+    return loadCart(userId);
   }
 
   /**
    * 장바구니 상품 추가
-   * - Cart가 없으면 이 시점에 생성
-   * - 동시 요청으로 UNIQUE(user_id) 충돌이 나면 재조회로 복구
+   * - 이미 담긴 variant면 수량 증가(원자적 HINCRBY), 없으면 신규 추가
    */
   public CartResponseDto addItem(Long userId, CartItemAddRequestDto request) {
     validateAuthPrincipal(userId);
-
-    Cart cart = getOrCreateCart(userId);
 
     ItemVariant itemVariant = itemVariantRepository.findById(request.getItemVariantId())
         .orElseThrow(() -> new BusinessException(CartErrorCode.ITEM_VARIANT_NOT_FOUND));
@@ -78,26 +64,19 @@ public class CartService {
       throw new BusinessException(CartErrorCode.OUT_OF_STOCK);
     }
 
-    CartItem newItem = CartItem.of(itemVariant, request.getQuantity());
-    cart.addOrIncreaseItem(newItem);
+    cartRedisRepository.increaseQuantity(userId, request.getItemVariantId(), request.getQuantity());
 
-    // 옵션까지 포함한 응답을 위해 EntityGraph 조회로 다시 로딩
-    Cart reloaded = cartRepository.findWithItemsByUser_UserId(userId)
-        .orElseThrow(() -> new BusinessException(CartErrorCode.CART_NOT_FOUND));
-
-    return cartMapper.toCartResponseDto(reloaded);
+    return loadCart(userId);
   }
 
   /**
    * 비로그인 장바구니 병합
    * - 프론트엔드 로컬(비로그인) 장바구니 목록을 로그인 시점에 서버 Cart로 병합
-   * - 정책: 수량 합산(기존 addOrIncreaseItem과 동일). 품절/판매중지/재고초과 항목은
-   *   전체를 실패시키지 않고 해당 항목만 스킵 처리 후 사유와 함께 응답
+   * - 정책: 수량 합산. 품절/판매중지/재고초과 항목은 전체를 실패시키지 않고 해당 항목만 스킵 처리 후 사유와 함께 응답
    */
   public CartMergeResponseDto mergeGuestCart(Long userId, CartMergeRequestDto request) {
     validateAuthPrincipal(userId);
 
-    Cart cart = getOrCreateCart(userId);
     List<CartMergeSkippedItemDto> skippedItems = new ArrayList<>();
 
     for (CartMergeItemDto item : request.getItems()) {
@@ -112,8 +91,7 @@ public class CartService {
           throw new BusinessException(CartErrorCode.OUT_OF_STOCK);
         }
 
-        CartItem existing = cart.findItemByVariantId(item.getItemVariantId());
-        int existingQuantity = existing != null ? existing.getQuantity() : 0;
+        int existingQuantity = cartRedisRepository.findQuantity(userId, item.getItemVariantId()).orElse(0);
         int mergedQuantity = existingQuantity + item.getQuantity();
 
         StockResponse stock = inventoryService.getStock(item.getItemVariantId());
@@ -121,7 +99,7 @@ public class CartService {
           throw new BusinessException(CartErrorCode.EXCEEDS_STOCK);
         }
 
-        cart.addOrIncreaseItem(CartItem.of(itemVariant, item.getQuantity()));
+        cartRedisRepository.increaseQuantity(userId, item.getItemVariantId(), item.getQuantity());
 
       } catch (BusinessException e) {
         BaseErrorCode errorCode = e.getErrorCode();
@@ -130,10 +108,7 @@ public class CartService {
       }
     }
 
-    Cart reloaded = cartRepository.findWithItemsByUser_UserId(userId)
-        .orElseThrow(() -> new BusinessException(CartErrorCode.CART_NOT_FOUND));
-
-    return new CartMergeResponseDto(cartMapper.toCartResponseDto(reloaded), skippedItems);
+    return new CartMergeResponseDto(loadCart(userId), skippedItems);
   }
 
   /**
@@ -141,7 +116,7 @@ public class CartService {
    */
   public CartResponseDto updateItemQuantity(
       Long userId,
-      Long cartItemId,
+      Long itemVariantId,
       CartItemUpdateRequestDto request
   ) {
     validateAuthPrincipal(userId);
@@ -150,70 +125,99 @@ public class CartService {
       throw new BusinessException(CartErrorCode.INVALID_QUANTITY);
     }
 
-    CartItem cartItem = cartItemRepository
-        .findByCartItemIdAndCart_User_UserId(cartItemId, userId)
-        .orElseThrow(() -> new BusinessException(CartErrorCode.CART_ITEM_NOT_FOUND));
+    if (!cartRedisRepository.exists(userId, itemVariantId)) {
+      throw new BusinessException(CartErrorCode.CART_ITEM_NOT_FOUND);
+    }
 
-    StockResponse stock = inventoryService.getStock(cartItem.getItemVariant().getItemVariantId());
+    StockResponse stock = inventoryService.getStock(itemVariantId);
     if (request.getQuantity() > stock.getQuantity()) {
       throw new BusinessException(CartErrorCode.EXCEEDS_STOCK);
     }
 
-    cartItem.changeQuantity(request.getQuantity());
+    cartRedisRepository.setQuantity(userId, itemVariantId, request.getQuantity());
 
-    Cart reloaded = cartRepository.findWithItemsByUser_UserId(userId)
-        .orElseThrow(() -> new BusinessException(CartErrorCode.CART_NOT_FOUND));
-
-    return cartMapper.toCartResponseDto(reloaded);
+    return loadCart(userId);
   }
 
   /**
    * 장바구니 상품 삭제
    */
-  public void removeItem(Long userId, Long cartItemId) {
+  public void removeItem(Long userId, Long itemVariantId) {
     validateAuthPrincipal(userId);
 
-    CartItem cartItem = cartItemRepository
-        .findByCartItemIdAndCart_User_UserId(cartItemId, userId)
-        .orElseThrow(() -> new BusinessException(CartErrorCode.CART_ITEM_NOT_FOUND));
+    if (!cartRedisRepository.exists(userId, itemVariantId)) {
+      throw new BusinessException(CartErrorCode.CART_ITEM_NOT_FOUND);
+    }
 
-    cartItem.getCart().removeItemByVariantId(
-        cartItem.getItemVariant().getItemVariantId()
-    );
+    cartRedisRepository.removeItem(userId, itemVariantId);
   }
 
   /**
    * 장바구니 비우기
-   * - Cart가 없어도 "비워진 상태"이므로 성공(멱등)
+   * - 카트가 없어도 "비워진 상태"이므로 성공(멱등)
    */
   public void clearCart(Long userId) {
     validateAuthPrincipal(userId);
+    cartRedisRepository.clear(userId);
+  }
 
-    cartRepository.findByUser_UserId(userId).ifPresent(Cart::clear);
+  /* ==================== Order 도메인용 ==================== */
+
+  /**
+   * 장바구니 전체 조회 (Order의 CART_ALL 주문 생성용)
+   */
+  public List<CartLineItem> getCartLineItems(Long userId) {
+    validateAuthPrincipal(userId);
+    Map<Long, Integer> quantities = cartRedisRepository.findAll(userId);
+    return toLineItems(quantities);
+  }
+
+  /**
+   * 장바구니 중 지정한 itemVariantId만 조회 (Order의 CART_SELECTED 주문 생성용)
+   * - 요청한 itemVariantId 중 하나라도 카트에 없으면 예외(O-3: 조용히 무시하지 않고 전체 실패)
+   */
+  public List<CartLineItem> getCartLineItems(Long userId, Collection<Long> itemVariantIds) {
+    validateAuthPrincipal(userId);
+
+    Map<Long, Integer> quantities = new LinkedHashMap<>();
+    for (Long itemVariantId : itemVariantIds) {
+      int quantity = cartRedisRepository.findQuantity(userId, itemVariantId)
+          .orElseThrow(() -> new BusinessException(CartErrorCode.CART_ITEM_NOT_FOUND));
+      quantities.put(itemVariantId, quantity);
+    }
+    return toLineItems(quantities);
+  }
+
+  /**
+   * 지정한 itemVariantId들만 장바구니에서 제거 (Order 생성 후 정리용)
+   */
+  public void removeItems(Long userId, Collection<Long> itemVariantIds) {
+    validateAuthPrincipal(userId);
+    cartRedisRepository.removeItems(userId, itemVariantIds);
   }
 
   /* ==================== 내부 유틸 ==================== */
 
-  private Cart getOrCreateCart(Long userId) {
-    return cartRepository.findByUser_UserId(userId)
-        .orElseGet(() -> {
-          try {
-            return createCart(userId);
-          } catch (DataIntegrityViolationException e) {
-            // 동시 요청으로 UNIQUE(user_id) 충돌이 날 수 있음 -> 누군가 먼저 생성했으니 재조회
-            log.warn("Cart create raced for userId={}, retrying find. cause={}", userId, e.getMessage());
-            return cartRepository.findByUser_UserId(userId)
-                .orElseThrow(() -> e);
-          }
-        });
+  private CartResponseDto loadCart(Long userId) {
+    Map<Long, Integer> quantities = cartRedisRepository.findAll(userId);
+    List<ItemVariant> variants = itemVariantRepository.findWithOptionsByItemVariantIdIn(quantities.keySet());
+    return cartMapper.toCartResponseDto(userId, quantities, variants);
   }
 
-  private Cart createCart(Long userId) {
-    User user = userRepository.findById(userId)
-        .orElseThrow(() -> new BusinessException(CartErrorCode.CART_ACCESS_DENIED));
+  private List<CartLineItem> toLineItems(Map<Long, Integer> quantities) {
+    if (quantities.isEmpty()) return List.of();
 
-    Cart cart = Cart.create(user);
-    return cartRepository.save(cart);
+    List<ItemVariant> variants = itemVariantRepository.findWithOptionsByItemVariantIdIn(quantities.keySet());
+    Map<Long, ItemVariant> variantById = variants.stream()
+        .collect(Collectors.toMap(ItemVariant::getItemVariantId, v -> v));
+
+    List<CartLineItem> result = new ArrayList<>();
+    for (Map.Entry<Long, Integer> entry : quantities.entrySet()) {
+      ItemVariant variant = variantById.get(entry.getKey());
+      if (variant == null) continue; // 카트에 담긴 뒤 상품이 삭제된 경우는 조용히 제외
+      result.add(new CartLineItem(variant, entry.getValue()));
+    }
+    return result;
   }
 
   private void validateAuthPrincipal(Long userId) {

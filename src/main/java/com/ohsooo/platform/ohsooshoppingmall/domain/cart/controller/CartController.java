@@ -72,28 +72,28 @@ public class CartController {
 
   @Operation(
       summary = "장바구니 상품 수량 변경",
-      description = "cartItemId 기준으로 장바구니 상품 수량을 변경합니다."
+      description = "itemVariantId 기준으로 장바구니 상품 수량을 변경합니다."
   )
-  @PatchMapping("/items/{cartItemId}")
+  @PatchMapping("/items/{itemVariantId}")
   public ResponseEntity<BaseResponse<CartResponseDto>> updateItemQuantity(
       @AuthenticationPrincipal Long userId,
-      @PathVariable Long cartItemId,
+      @PathVariable Long itemVariantId,
       @Valid @RequestBody CartItemUpdateRequestDto request
   ) {
-    CartResponseDto response = cartService.updateItemQuantity(userId, cartItemId, request);
+    CartResponseDto response = cartService.updateItemQuantity(userId, itemVariantId, request);
     return ResponseEntity.ok(BaseResponse.success("장바구니 수량 변경 성공", response));
   }
 
   @Operation(
       summary = "장바구니 상품 삭제",
-      description = "cartItemId 기준으로 장바구니 상품을 삭제합니다."
+      description = "itemVariantId 기준으로 장바구니 상품을 삭제합니다."
   )
-  @DeleteMapping("/items/{cartItemId}")
+  @DeleteMapping("/items/{itemVariantId}")
   public ResponseEntity<BaseResponse<Void>> removeItem(
       @AuthenticationPrincipal Long userId,
-      @PathVariable Long cartItemId
+      @PathVariable Long itemVariantId
   ) {
-    cartService.removeItem(userId, cartItemId);
+    cartService.removeItem(userId, itemVariantId);
     return ResponseEntity.ok(BaseResponse.success("장바구니 상품 삭제 성공", null));
   }
 
