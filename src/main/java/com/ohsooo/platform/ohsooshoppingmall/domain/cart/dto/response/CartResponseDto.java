@@ -9,7 +9,6 @@ import lombok.Getter;
 @AllArgsConstructor
 public class CartResponseDto {
 
-  private Long cartId;
   private Long userId;
 
   private BigDecimal totalPrice;

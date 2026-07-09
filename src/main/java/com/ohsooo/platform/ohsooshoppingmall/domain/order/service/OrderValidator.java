@@ -19,7 +19,7 @@ public class OrderValidator {
     switch (request.getSource()) {
       case CART_ALL -> { /* ok */ }
       case CART_SELECTED -> {
-        if (request.getCartItemIds() == null || request.getCartItemIds().isEmpty()) {
+        if (request.getItemVariantIds() == null || request.getItemVariantIds().isEmpty()) {
           throw new BusinessException(OrderErrorCode.INVALID_CART_ITEM_IDS);
         }
       }

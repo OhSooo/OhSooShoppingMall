@@ -1,9 +1,7 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.order.service;
 
-import com.ohsooo.platform.ohsooshoppingmall.domain.cart.entity.Cart;
-import com.ohsooo.platform.ohsooshoppingmall.domain.cart.entity.CartItem;
-import com.ohsooo.platform.ohsooshoppingmall.domain.cart.exception.CartErrorCode;
-import com.ohsooo.platform.ohsooshoppingmall.domain.cart.repository.CartRepository;
+import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.CartLineItem;
+import com.ohsooo.platform.ohsooshoppingmall.domain.cart.service.CartService;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.option.Option;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.option.OptionType;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariant;
@@ -37,9 +35,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.order.repository.OrderItemRe
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.repository.OrderRepository;
 import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -55,7 +51,7 @@ public class OrderService {
   private final OrderItemHistoryRepository orderItemHistoryRepository;
 
   private final UserRepository userRepository;
-  private final CartRepository cartRepository;
+  private final CartService cartService;
   private final ItemVariantRepository itemVariantRepository;
 
   private final InventoryService inventoryService;
@@ -76,7 +72,7 @@ public class OrderService {
 
     List<OrderItem> orderItems = switch (request.getSource()) {
       case CART_ALL -> buildOrderItemsFromCartAll(userId);
-      case CART_SELECTED -> buildOrderItemsFromCartSelected(userId, request.getCartItemIds());
+      case CART_SELECTED -> buildOrderItemsFromCartSelected(userId, request.getItemVariantIds());
       case DIRECT -> buildOrderItemsFromDirect(request.getItems());
     };
 
@@ -202,56 +198,43 @@ public class OrderService {
   // -------------------------
 
   private List<OrderItem> buildOrderItemsFromCartAll(Long userId) {
-    Cart cart = cartRepository.findWithItemsByUser_UserId(userId)
-        .orElseThrow(() -> new BusinessException(CartErrorCode.CART_NOT_FOUND));
-
-    if (cart.getCartItems() == null || cart.getCartItems().isEmpty()) {
+    List<CartLineItem> lineItems = cartService.getCartLineItems(userId);
+    if (lineItems.isEmpty()) {
       throw new BusinessException(OrderErrorCode.EMPTY_ORDER_ITEMS);
     }
 
     List<OrderItem> result = new ArrayList<>();
-    for (CartItem ci : cart.getCartItems()) {
-      ItemVariant variant = ci.getItemVariant();
-      int qty = ci.getQuantity();
+    for (CartLineItem li : lineItems) {
+      ItemVariant variant = li.variant();
+      int qty = li.quantity();
       result.add(OrderItem.of(variant, qty, variant.getPrice(),
           snapshotProductName(variant), snapshotOptionSummary(variant)));
     }
-    cart.clear();
+    cartService.clearCart(userId);
     return result;
   }
 
-  private List<OrderItem> buildOrderItemsFromCartSelected(Long userId, List<Long> cartItemIds) {
-    if (cartItemIds == null || cartItemIds.isEmpty()) {
+  private List<OrderItem> buildOrderItemsFromCartSelected(Long userId, List<Long> itemVariantIds) {
+    if (itemVariantIds == null || itemVariantIds.isEmpty()) {
       throw new BusinessException(OrderErrorCode.INVALID_CART_ITEM_IDS);
     }
 
-    Cart cart = cartRepository.findWithItemsByUser_UserId(userId)
-        .orElseThrow(() -> new BusinessException(CartErrorCode.CART_NOT_FOUND));
-
-    if (cart.getCartItems() == null || cart.getCartItems().isEmpty()) {
+    List<CartLineItem> lineItems = cartService.getCartLineItems(userId, itemVariantIds);
+    if (lineItems.isEmpty()) {
       throw new BusinessException(OrderErrorCode.EMPTY_ORDER_ITEMS);
     }
 
-    Set<Long> targets = new HashSet<>(cartItemIds);
-    Set<Long> foundIds = new HashSet<>();
-
     List<OrderItem> result = new ArrayList<>();
-    List<Long> variantIdsToRemove = new ArrayList<>();
-    for (CartItem ci : cart.getCartItems()) {
-      if (!targets.contains(ci.getCartItemId())) continue;
-      ItemVariant variant = ci.getItemVariant();
-      int qty = ci.getQuantity();
+    List<Long> toRemove = new ArrayList<>();
+    for (CartLineItem li : lineItems) {
+      ItemVariant variant = li.variant();
+      int qty = li.quantity();
       result.add(OrderItem.of(variant, qty, variant.getPrice(),
           snapshotProductName(variant), snapshotOptionSummary(variant)));
-      variantIdsToRemove.add(variant.getItemVariantId());
-      foundIds.add(ci.getCartItemId());
+      toRemove.add(variant.getItemVariantId());
     }
 
-    if (!foundIds.containsAll(targets)) {
-      throw new BusinessException(CartErrorCode.CART_ITEM_NOT_FOUND);
-    }
-
-    variantIdsToRemove.forEach(cart::removeItemByVariantId);
+    cartService.removeItems(userId, toRemove);
     return result;
   }
 

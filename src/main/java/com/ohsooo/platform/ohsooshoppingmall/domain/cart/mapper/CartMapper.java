@@ -3,8 +3,6 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.cart.mapper;
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.response.CartItemOptionResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.response.CartItemResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.cart.dto.response.CartResponseDto;
-import com.ohsooo.platform.ohsooshoppingmall.domain.cart.entity.Cart;
-import com.ohsooo.platform.ohsooshoppingmall.domain.cart.entity.CartItem;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.Item;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.ItemStatus;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.option.Option;
@@ -12,8 +10,10 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemV
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariantOption;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariantStatus;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
@@ -21,24 +21,26 @@ import org.springframework.stereotype.Component;
 @Component
 public class CartMapper {
 
-  public CartResponseDto toCartResponseDto(Cart cart) {
-    if (cart == null) return null;
+  /**
+   * Redis에서 읽어온 (itemVariantId -> quantity)와 Catalog에서 배치 조회한 ItemVariant 목록을 조합해 응답을 만든다.
+   * quantities에는 있지만 variants에 없는 itemVariantId(카트에 담긴 뒤 상품이 삭제된 경우)는 조용히 제외한다.
+   */
+  public CartResponseDto toCartResponseDto(Long userId, Map<Long, Integer> quantities, List<ItemVariant> variants) {
+    Map<Long, ItemVariant> variantById = variants.stream()
+        .collect(Collectors.toMap(ItemVariant::getItemVariantId, v -> v));
 
-    List<CartItemResponseDto> items = toCartItemResponseDtoList(cart.getCartItems());
+    List<CartItemResponseDto> items = new ArrayList<>();
+    for (Map.Entry<Long, Integer> entry : quantities.entrySet()) {
+      ItemVariant variant = variantById.get(entry.getKey());
+      if (variant == null) continue;
+      items.add(toCartItemResponseDto(variant, entry.getValue()));
+    }
+
     BigDecimal totalPrice = calculateTotalPrice(items);
-
-    return new CartResponseDto(
-        cart.getCartId(),
-        cart.getUser().getUserId(),
-        totalPrice,
-        items
-    );
+    return new CartResponseDto(userId, totalPrice, items);
   }
 
-  public CartItemResponseDto toCartItemResponseDto(CartItem cartItem) {
-    if (cartItem == null) return null;
-
-    ItemVariant variant = cartItem.getItemVariant();
+  public CartItemResponseDto toCartItemResponseDto(ItemVariant variant, int quantity) {
     Item item = variant.getItem();
 
     Set<CartItemOptionResponseDto> options = toOptionDtos(variant.getItemVariantOptions());
@@ -48,24 +50,15 @@ public class CartMapper {
             && variant.getStatus() == ItemVariantStatus.ACTIVE;
 
     return new CartItemResponseDto(
-        cartItem.getCartItemId(),
         variant.getItemVariantId(),
         item.getName(),
-        variant.getPrice(), // BigDecimal
+        variant.getPrice(),
         item.getStore().getStoreId(),
         item.getStore().getName(),
         options,
-        cartItem.getQuantity(),
+        quantity,
         saleable
     );
-  }
-
-  public List<CartItemResponseDto> toCartItemResponseDtoList(List<CartItem> cartItems) {
-    if (cartItems == null || cartItems.isEmpty()) return Collections.emptyList();
-
-    return cartItems.stream()
-        .map(this::toCartItemResponseDto)
-        .collect(Collectors.toList());
   }
 
   private Set<CartItemOptionResponseDto> toOptionDtos(Set<ItemVariantOption> itemVariantOptions) {
@@ -88,7 +81,6 @@ public class CartMapper {
 
     BigDecimal sum = BigDecimal.ZERO;
     for (CartItemResponseDto i : items) {
-      // sum += price * quantity
       sum = sum.add(i.getPrice().multiply(BigDecimal.valueOf(i.getQuantity())));
     }
     return sum;

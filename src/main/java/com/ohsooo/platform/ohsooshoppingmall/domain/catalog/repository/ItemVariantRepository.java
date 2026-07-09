@@ -2,8 +2,10 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.catalog.repository;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariant;
 import com.ohsooo.platform.ohsooshoppingmall.domain.catalog.entity.variant.ItemVariantStatus;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -18,6 +20,18 @@ public interface ItemVariantRepository extends JpaRepository<ItemVariant, Long> 
   List<ItemVariant> findByItem_ItemId(Long itemId);
 
   List<ItemVariant> findByItem_ItemIdAndStatus(Long itemId, ItemVariantStatus status);
+
+  /**
+   * 장바구니 응답 조합용. item + item.store + itemVariantOptions + option까지 한 번에 로딩
+   * -> CartMapper에서 itemName / price / options를 세션 밖에서도 안전하게 만들 수 있음 (N+1 방지)
+   */
+  @EntityGraph(attributePaths = {
+      "item",
+      "item.store",
+      "itemVariantOptions",
+      "itemVariantOptions.option"
+  })
+  List<ItemVariant> findWithOptionsByItemVariantIdIn(Collection<Long> itemVariantIds);
 
   // Inventory 수량 변경 후 ItemVariant.status 동기화용. DISABLED 상태는 변경하지 않는다.
   @Modifying(clearAutomatically = true, flushAutomatically = true)

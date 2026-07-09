@@ -17,7 +17,7 @@ public class OrderCreateRequestDto {
   /**
    * [필수] 주문 생성 소스
    * - CART_ALL: 내 장바구니 전체 주문
-   * - CART_SELECTED: cartItemIds로 지정한 항목만 주문
+   * - CART_SELECTED: itemVariantIds로 지정한 항목만 주문
    * - DIRECT: items로 직접 주문(바로구매)
    */
   @NotNull
@@ -27,7 +27,7 @@ public class OrderCreateRequestDto {
    * [조건부] CART_SELECTED일 때 사용
    */
   @Size(max = 200)
-  private List<Long> cartItemIds;
+  private List<Long> itemVariantIds;
 
   /**
    * [조건부] DIRECT일 때 사용
