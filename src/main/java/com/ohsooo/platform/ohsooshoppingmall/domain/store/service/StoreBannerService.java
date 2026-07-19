@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -74,6 +75,15 @@ public class StoreBannerService {
             if (!banner.isActive()) {
                 throw new BusinessException(StoreErrorCode.STORE_BANNER_INACTIVE_CANNOT_REORDER);
             }
+        }
+
+        Set<Long> activeBannerIds = storeBannerRepository
+                .findAllByStore_StoreIdAndIsActiveTrueOrderBySortOrderAsc(storeId)
+                .stream()
+                .map(StoreBanner::getStoreBannerId)
+                .collect(Collectors.toSet());
+        if (!activeBannerIds.equals(new HashSet<>(bannerIds))) {
+            throw new BusinessException(StoreErrorCode.STORE_BANNER_ORDER_MISMATCH);
         }
 
         for (int i = 0; i < bannerIds.size(); i++) {

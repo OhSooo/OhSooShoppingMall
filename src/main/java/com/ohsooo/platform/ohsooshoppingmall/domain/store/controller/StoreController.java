@@ -11,6 +11,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.store.service.StoreService;
 import com.ohsooo.platform.ohsooshoppingmall.global.response.BaseResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -72,7 +73,7 @@ public class StoreController {
     public ResponseEntity<BaseResponse<StoreProfileResponse>> changeOperationStatus(
             @AuthenticationPrincipal Long userId,
             @PathVariable Long storeId,
-            @RequestBody StoreOperationStatusUpdateRequest request
+            @Valid @RequestBody StoreOperationStatusUpdateRequest request
     ) {
         StoreProfileResponse response = storeService.changeOperationStatus(
                 storeId, userId, request.getOperationStatus());
