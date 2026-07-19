@@ -38,7 +38,7 @@ public class StoreDetailResponse {
     @Schema(example = "OPEN")
     private final StoreOperationStatus operationStatus;
 
-    @Schema(description = "활성 배너 목록")
+    @Schema(description = "배너 목록")
     private final List<StoreBannerResponse> banners;
 
     @Schema(description = "배송정책 (없을 수 있음)")

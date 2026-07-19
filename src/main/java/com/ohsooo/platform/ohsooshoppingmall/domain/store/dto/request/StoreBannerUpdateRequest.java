@@ -21,7 +21,4 @@ public class StoreBannerUpdateRequest {
     @Size(max = 255, message = "배너 제목은 255자 이내여야 합니다")
     @Schema(description = "배너 제목", example = "여름 세일 이벤트")
     private String title;
-
-    @Schema(description = "활성 여부", example = "true")
-    private Boolean isActive;
 }

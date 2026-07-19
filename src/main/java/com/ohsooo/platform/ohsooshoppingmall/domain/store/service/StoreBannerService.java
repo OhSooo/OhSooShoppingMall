@@ -39,15 +39,14 @@ public class StoreBannerService {
     }
 
     public StoreBannerResponse updateBanner(Long storeId, Long bannerId, Long ownerId,
-                                            String imageUrl, String linkUrl, String title,
-                                            Boolean isActive) {
+                                            String imageUrl, String linkUrl, String title) {
         Store store = storeService.getStoreEntity(storeId);
         validateOwner(store, ownerId);
 
         StoreBanner banner = getBannerEntity(bannerId);
         validateBannerBelongsToStore(banner, storeId);
 
-        banner.update(imageUrl, linkUrl, title, isActive);
+        banner.update(imageUrl, linkUrl, title);
         return storeMapper.toStoreBannerResponse(banner);
     }
 
@@ -72,17 +71,14 @@ public class StoreBannerService {
             if (!banner.getStore().getStoreId().equals(storeId)) {
                 throw new BusinessException(StoreErrorCode.STORE_BANNER_NOT_BELONG_TO_STORE);
             }
-            if (!banner.isActive()) {
-                throw new BusinessException(StoreErrorCode.STORE_BANNER_INACTIVE_CANNOT_REORDER);
-            }
         }
 
-        Set<Long> activeBannerIds = storeBannerRepository
-                .findAllByStore_StoreIdAndIsActiveTrueOrderBySortOrderAsc(storeId)
+        Set<Long> storeBannerIds = storeBannerRepository
+                .findAllByStore_StoreIdOrderBySortOrderAsc(storeId)
                 .stream()
                 .map(StoreBanner::getStoreBannerId)
                 .collect(Collectors.toSet());
-        if (!activeBannerIds.equals(new HashSet<>(bannerIds))) {
+        if (!storeBannerIds.equals(new HashSet<>(bannerIds))) {
             throw new BusinessException(StoreErrorCode.STORE_BANNER_ORDER_MISMATCH);
         }
 
@@ -92,27 +88,27 @@ public class StoreBannerService {
         }
 
         return storeBannerRepository
-                .findAllByStore_StoreIdAndIsActiveTrueOrderBySortOrderAsc(storeId)
+                .findAllByStore_StoreIdOrderBySortOrderAsc(storeId)
                 .stream()
                 .map(storeMapper::toStoreBannerResponse)
                 .toList();
     }
 
-    public void deactivateBanner(Long storeId, Long bannerId, Long ownerId) {
+    public void deleteBanner(Long storeId, Long bannerId, Long ownerId) {
         Store store = storeService.getStoreEntity(storeId);
         validateOwner(store, ownerId);
 
         StoreBanner banner = getBannerEntity(bannerId);
         validateBannerBelongsToStore(banner, storeId);
 
-        banner.deactivate();
+        storeBannerRepository.delete(banner);
     }
 
     @Transactional(readOnly = true)
-    public List<StoreBannerResponse> getActiveBanners(Long storeId) {
+    public List<StoreBannerResponse> getBanners(Long storeId) {
         storeService.getStoreEntity(storeId);
         return storeBannerRepository
-                .findAllByStore_StoreIdAndIsActiveTrueOrderBySortOrderAsc(storeId)
+                .findAllByStore_StoreIdOrderBySortOrderAsc(storeId)
                 .stream()
                 .map(storeMapper::toStoreBannerResponse)
                 .toList();

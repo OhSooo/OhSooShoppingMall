@@ -34,9 +34,6 @@ public class StoreBanner {
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
 
-    @Column(name = "is_active", nullable = false)
-    private boolean isActive;
-
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -49,7 +46,6 @@ public class StoreBanner {
         this.linkUrl = linkUrl;
         this.title = title;
         this.sortOrder = sortOrder;
-        this.isActive = true;
     }
 
     @PrePersist
@@ -64,7 +60,7 @@ public class StoreBanner {
         this.updatedAt = OffsetDateTime.now();
     }
 
-    public void update(String imageUrl, String linkUrl, String title, Boolean isActive) {
+    public void update(String imageUrl, String linkUrl, String title) {
         if (imageUrl != null) {
             this.imageUrl = imageUrl;
         }
@@ -74,16 +70,9 @@ public class StoreBanner {
         if (title != null) {
             this.title = title;
         }
-        if (isActive != null) {
-            this.isActive = isActive;
-        }
     }
 
     public void updateSortOrder(int sortOrder) {
         this.sortOrder = sortOrder;
-    }
-
-    public void deactivate() {
-        this.isActive = false;
     }
 }

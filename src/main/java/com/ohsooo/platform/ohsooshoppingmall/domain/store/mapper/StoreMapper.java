@@ -47,7 +47,6 @@ public class StoreMapper {
                 .linkUrl(banner.getLinkUrl())
                 .title(banner.getTitle())
                 .sortOrder(banner.getSortOrder())
-                .isActive(banner.isActive())
                 .createdAt(banner.getCreatedAt())
                 .updatedAt(banner.getUpdatedAt())
                 .build();

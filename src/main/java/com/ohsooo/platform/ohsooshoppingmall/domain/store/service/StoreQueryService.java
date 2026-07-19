@@ -23,7 +23,7 @@ public class StoreQueryService {
 
     public StoreDetailResponse getStoreDetail(Long storeId) {
         StoreProfileResponse profile = storeService.getStoreProfile(storeId);
-        List<StoreBannerResponse> banners = storeBannerService.getActiveBanners(storeId);
+        List<StoreBannerResponse> banners = storeBannerService.getBanners(storeId);
         StoreDeliveryPolicyResponse deliveryPolicy =
                 storeDeliveryPolicyService.getDeliveryPolicyOrNull(storeId);
 

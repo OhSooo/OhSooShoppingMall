@@ -9,8 +9,6 @@ import java.util.List;
 
 public interface StoreBannerRepository extends JpaRepository<StoreBanner, Long> {
 
-    List<StoreBanner> findAllByStore_StoreIdAndIsActiveTrueOrderBySortOrderAsc(Long storeId);
-
     List<StoreBanner> findAllByStore_StoreIdOrderBySortOrderAsc(Long storeId);
 
     @Query("SELECT COALESCE(MAX(b.sortOrder), -1) FROM StoreBanner b WHERE b.store.storeId = :storeId")

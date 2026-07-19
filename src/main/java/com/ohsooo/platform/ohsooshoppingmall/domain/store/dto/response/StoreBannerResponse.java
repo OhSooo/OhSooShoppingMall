@@ -29,9 +29,6 @@ public class StoreBannerResponse {
     @Schema(example = "0")
     private final int sortOrder;
 
-    @Schema(example = "true")
-    private final boolean isActive;
-
     @Schema(description = "생성 시각")
     private final OffsetDateTime createdAt;
 
