@@ -16,7 +16,8 @@ public enum CatalogErrorCode implements BaseErrorCode {
 
   INVALID_OPTION_TYPE(HttpStatus.BAD_REQUEST, "CATALOG_4001", "유효하지 않은 옵션 타입입니다."),
   DUPLICATE_SKU(HttpStatus.CONFLICT, "CATALOG_4091", "이미 존재하는 SKU입니다."),
-  DUPLICATE_OPTION_COMBINATION(HttpStatus.CONFLICT, "CATALOG_4092", "동일한 옵션 조합을 가진 판매 단위가 이미 존재합니다.");
+  DUPLICATE_OPTION_COMBINATION(HttpStatus.CONFLICT, "CATALOG_4092", "동일한 옵션 조합을 가진 판매 단위가 이미 존재합니다."),
+  DUPLICATE_OPTION_TYPE(HttpStatus.BAD_REQUEST, "CATALOG_4002", "하나의 판매 단위 안에 동일한 옵션 타입이 중복될 수 없습니다.");
 
   private final HttpStatus status;
   private final String code;
