@@ -1,7 +1,6 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.store.entity;
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 
 @Getter
@@ -15,19 +14,28 @@ public class Store {
     @Column(name = "store_id")
     private Long storeId;
 
-    // 연관관계 아직 안 걺. user 테이블 생기면 추후 추가
     @Column(name = "owner_id", nullable = false)
     private Long ownerId;
 
     @Column(nullable = false, length = 255)
     private String name;
 
-    @Column(length = 255)
+    @Column(columnDefinition = "TEXT")
     private String description;
+
+    @Column(columnDefinition = "TEXT")
+    private String notice;
+
+    @Column(name = "main_image_url", length = 500)
+    private String mainImageUrl;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private StoreStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "operation_status", nullable = false)
+    private StoreOperationStatus operationStatus;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -39,7 +47,8 @@ public class Store {
         this.ownerId = ownerId;
         this.name = name;
         this.description = description;
-        this.status = StoreStatus.ACTIVE;       // 기본값: ACTIVE
+        this.status = StoreStatus.ACTIVE;
+        this.operationStatus = StoreOperationStatus.OPEN;
     }
 
     @PrePersist
@@ -54,15 +63,23 @@ public class Store {
         this.updatedAt = OffsetDateTime.now();
     }
 
-    public void deactivate() {
-        this.status = StoreStatus.INACTIVE;
-    }
-
-    public void delete() {
-        this.status = StoreStatus.DELETED;
-    }
-
     public void changeStatus(StoreStatus status) {
         this.status = status;
+    }
+
+    public void updateProfile(String description, String notice, String mainImageUrl) {
+        if (description != null) {
+            this.description = description;
+        }
+        if (notice != null) {
+            this.notice = notice;
+        }
+        if (mainImageUrl != null) {
+            this.mainImageUrl = mainImageUrl;
+        }
+    }
+
+    public void changeOperationStatus(StoreOperationStatus operationStatus) {
+        this.operationStatus = operationStatus;
     }
 }
