@@ -92,9 +92,10 @@ public class ItemService {
             }
         }
 
-        // 5. 요청 내 옵션 조합 중복 검증
+        // 5. 요청 내 옵션 조합 중복 검증 (+ Variant 내부 OptionType 중복 검증)
         Set<String> requestCombinations = new HashSet<>();
         for (VariantDto variantDto : request.getVariants()) {
+            validateNoDuplicateOptionType(variantDto.getOptions(), OptionDto::getType);
             String combinationKey = buildOptionCombinationKey(
                     variantDto.getOptions(), OptionDto::getType, OptionDto::getValue);
             if (!requestCombinations.add(combinationKey)) {
@@ -173,9 +174,10 @@ public class ItemService {
             }
         }
 
-        // 4. 요청 내 옵션 조합 중복 검증
+        // 4. 요청 내 옵션 조합 중복 검증 (+ Variant 내부 OptionType 중복 검증)
         Set<String> requestCombinations = new HashSet<>();
         for (AddVariantsRequestDto.VariantDto variantDto : request.getVariants()) {
+            validateNoDuplicateOptionType(variantDto.getOptions(), AddVariantsRequestDto.OptionDto::getType);
             String combinationKey = buildOptionCombinationKey(
                     variantDto.getOptions(),
                     AddVariantsRequestDto.OptionDto::getType,
@@ -239,6 +241,19 @@ public class ItemService {
     private void validateStoreOwner(Store store, Long userId) {
         if (!store.getOwnerId().equals(userId)) {
             throw new BusinessException(StoreErrorCode.STORE_OWNER_FORBIDDEN);
+        }
+    }
+
+    private <T> void validateNoDuplicateOptionType(
+            Collection<T> options, Function<T, OptionType> typeExtractor) {
+        if (options == null || options.isEmpty()) {
+            return;
+        }
+        Set<OptionType> seenTypes = new HashSet<>();
+        for (T option : options) {
+            if (!seenTypes.add(typeExtractor.apply(option))) {
+                throw new BusinessException(CatalogErrorCode.DUPLICATE_OPTION_TYPE);
+            }
         }
     }
 
