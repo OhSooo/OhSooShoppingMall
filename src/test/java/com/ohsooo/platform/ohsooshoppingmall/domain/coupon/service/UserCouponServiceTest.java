@@ -2,6 +2,8 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.coupon.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.response.CouponDiscountResponseDto;
@@ -18,10 +20,15 @@ import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Optional;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+import org.postgresql.util.ServerErrorMessage;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @ExtendWith(MockitoExtension.class)
 class UserCouponServiceTest {
@@ -128,6 +135,111 @@ class UserCouponServiceTest {
     UserCouponResponseDto response = userCouponService.issueCoupon(OWNER_ID, 10L);
 
     assertThat(response.getStatus().name()).isEqualTo("AVAILABLE");
+    verify(userCouponRepository).save(any(UserCoupon.class));
+  }
+
+  // ---------- 발급: DB 제약조건 위반 변환 ----------
+
+  private void stubIssuablePath() {
+    User user = mockUser(OWNER_ID);
+    when(couponService.getCouponEntity(10L)).thenReturn(usableNowCoupon());
+    when(userCouponRepository.existsByUser_UserIdAndCoupon_CouponId(OWNER_ID, 10L)).thenReturn(false);
+    when(userRepository.findByUserIdAndIsDeletedFalse(OWNER_ID)).thenReturn(Optional.of(user));
+  }
+
+  // 실제 실행 시 예외 구조: DataIntegrityViolationException → Hibernate ConstraintViolationException → PSQLException.
+  // 한국어 DB 메시지에서는 Hibernate가 제약조건 이름을 추출하지 못하므로(null) 그 상황을 그대로 재현한다.
+  private DataIntegrityViolationException integrityViolation(String sqlState, String constraintName) {
+    StringBuilder fields = new StringBuilder()
+        .append("SERROR\0")
+        .append("C").append(sqlState).append("\0")
+        .append("M제약 조건을 위반함\0");
+    if (constraintName != null) {
+      fields.append("n").append(constraintName).append("\0");
+    }
+    return wrap(new PSQLException(new ServerErrorMessage(fields.toString())));
+  }
+
+  private DataIntegrityViolationException wrap(PSQLException psqlException) {
+    ConstraintViolationException hibernateException =
+        new ConstraintViolationException("could not execute statement", psqlException, null);
+    return new DataIntegrityViolationException("could not execute statement", hibernateException);
+  }
+
+  @Test
+  void 동시발급으로_uq_user_coupon_제약을_위반하면_중복발급_예외로_변환된다() {
+    userCouponService = service();
+    stubIssuablePath();
+    DataIntegrityViolationException violation = integrityViolation("23505", "uq_user_coupon");
+    when(userCouponRepository.save(any(UserCoupon.class))).thenThrow(violation);
+
+    assertThatThrownBy(() -> userCouponService.issueCoupon(OWNER_ID, 10L))
+        .isInstanceOf(BusinessException.class)
+        .hasCause(violation)
+        .extracting(e -> ((BusinessException) e).getErrorCode())
+        .isEqualTo(CouponErrorCode.COUPON_ALREADY_ISSUED);
+    assertThat(CouponErrorCode.COUPON_ALREADY_ISSUED.getStatus().value()).isEqualTo(409);
+  }
+
+  @Test
+  void FK_제약조건_위반은_중복발급_예외로_변환하지_않는다() {
+    userCouponService = service();
+    stubIssuablePath();
+    DataIntegrityViolationException violation = integrityViolation("23503", "user_coupons_user_id_fkey");
+    when(userCouponRepository.save(any(UserCoupon.class))).thenThrow(violation);
+
+    assertThatThrownBy(() -> userCouponService.issueCoupon(OWNER_ID, 10L)).isSameAs(violation);
+  }
+
+  @Test
+  void NOT_NULL_제약조건_위반은_중복발급_예외로_변환하지_않는다() {
+    userCouponService = service();
+    stubIssuablePath();
+    DataIntegrityViolationException violation = integrityViolation("23502", null);
+    when(userCouponRepository.save(any(UserCoupon.class))).thenThrow(violation);
+
+    assertThatThrownBy(() -> userCouponService.issueCoupon(OWNER_ID, 10L)).isSameAs(violation);
+  }
+
+  @Test
+  void 다른_UNIQUE_제약조건_위반은_중복발급_예외로_변환하지_않는다() {
+    userCouponService = service();
+    stubIssuablePath();
+    DataIntegrityViolationException violation = integrityViolation("23505", "user_coupons_pkey");
+    when(userCouponRepository.save(any(UserCoupon.class))).thenThrow(violation);
+
+    assertThatThrownBy(() -> userCouponService.issueCoupon(OWNER_ID, 10L)).isSameAs(violation);
+  }
+
+  @Test
+  void 서버_오류정보가_없는_PSQLException은_중복발급_예외로_변환하지_않는다() {
+    userCouponService = service();
+    stubIssuablePath();
+    DataIntegrityViolationException violation =
+        wrap(new PSQLException("duplicate", PSQLState.UNIQUE_VIOLATION));
+    when(userCouponRepository.save(any(UserCoupon.class))).thenThrow(violation);
+
+    assertThatThrownBy(() -> userCouponService.issueCoupon(OWNER_ID, 10L)).isSameAs(violation);
+  }
+
+  @Test
+  void UNIQUE_위반이지만_제약조건_이름이_없으면_중복발급_예외로_변환하지_않는다() {
+    userCouponService = service();
+    stubIssuablePath();
+    DataIntegrityViolationException violation = integrityViolation("23505", null);
+    when(userCouponRepository.save(any(UserCoupon.class))).thenThrow(violation);
+
+    assertThatThrownBy(() -> userCouponService.issueCoupon(OWNER_ID, 10L)).isSameAs(violation);
+  }
+
+  @Test
+  void PSQLException_원인정보가_없는_무결성_예외는_그대로_전파된다() {
+    userCouponService = service();
+    stubIssuablePath();
+    DataIntegrityViolationException violation = new DataIntegrityViolationException("unknown");
+    when(userCouponRepository.save(any(UserCoupon.class))).thenThrow(violation);
+
+    assertThatThrownBy(() -> userCouponService.issueCoupon(OWNER_ID, 10L)).isSameAs(violation);
   }
 
   // ---------- 사용 검증/처리 ----------

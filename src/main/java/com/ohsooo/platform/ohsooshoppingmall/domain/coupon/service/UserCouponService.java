@@ -16,6 +16,9 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.ServerErrorMessage;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 @RequiredArgsConstructor
 public class UserCouponService {
+
+  private static final String USER_COUPON_UNIQUE_CONSTRAINT = "uq_user_coupon";
+  private static final String UNIQUE_VIOLATION_SQL_STATE = "23505";
 
   private final UserCouponRepository userCouponRepository;
   private final UserRepository userRepository;
@@ -44,9 +50,34 @@ public class UserCouponService {
         .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
 
     UserCoupon userCoupon = UserCoupon.issue(user, coupon, now);
-    userCouponRepository.save(userCoupon);
+    try {
+      // 동시 요청이 exists 검사를 함께 통과한 경우 DB UNIQUE 제약에서 충돌한다.
+      // IDENTITY 전략이라 트랜잭션 안의 save()(persist) 시점에 INSERT가 즉시 실행되어 여기서 예외를 잡을 수 있다.
+      // ID 전략을 바꾸면 INSERT가 flush/커밋 시점으로 미뤄질 수 있으므로 이 처리도 함께 재검토해야 한다.
+      userCouponRepository.save(userCoupon);
+    } catch (DataIntegrityViolationException e) {
+      if (isViolationOf(e, USER_COUPON_UNIQUE_CONSTRAINT)) {
+        throw new BusinessException(CouponErrorCode.COUPON_ALREADY_ISSUED, e);
+      }
+      throw e;
+    }
 
     return couponMapper.toUserCouponResponseDto(userCoupon, now);
+  }
+
+  // 원인 체인에서 PSQLException을 찾아 SQLState와 위반한 제약조건 이름을 비교한다.
+  // Hibernate의 getConstraintName()은 영어 오류 메시지를 파싱하므로 DB 메시지가 한국어면 null이 된다.
+  // 서버가 프로토콜 필드로 보내주는 제약조건 이름(ServerErrorMessage.getConstraint())은 메시지 언어와 무관하다.
+  private boolean isViolationOf(DataIntegrityViolationException e, String constraintName) {
+    for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+      if (cause instanceof PSQLException psqlException) {
+        ServerErrorMessage serverError = psqlException.getServerErrorMessage();
+        return UNIQUE_VIOLATION_SQL_STATE.equals(psqlException.getSQLState())
+            && serverError != null
+            && constraintName.equalsIgnoreCase(serverError.getConstraint());
+      }
+    }
+    return false;
   }
 
   @Transactional(readOnly = true)
