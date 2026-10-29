@@ -29,7 +29,12 @@ public enum CouponErrorCode implements BaseErrorCode {
   COUPON_MIN_ORDER_AMOUNT_NOT_MET(HttpStatus.BAD_REQUEST, "COUPON_4005", "최소 주문 금액 조건을 만족하지 않습니다."),
   USER_COUPON_ALREADY_USED(HttpStatus.CONFLICT, "COUPON_4092", "이미 사용된 쿠폰입니다."),
   USER_COUPON_EXPIRED(HttpStatus.CONFLICT, "COUPON_4093", "사용 기간이 만료된 쿠폰입니다."),
-  USER_COUPON_NOT_YET_USABLE(HttpStatus.BAD_REQUEST, "COUPON_4006", "아직 사용 가능한 기간이 아닙니다.");
+  USER_COUPON_NOT_YET_USABLE(HttpStatus.BAD_REQUEST, "COUPON_4006", "아직 사용 가능한 기간이 아닙니다."),
+
+  // 주문 연동(사용/복구)
+  INVALID_ORDER_ID(HttpStatus.BAD_REQUEST, "COUPON_4007", "유효하지 않은 주문 ID입니다."),
+  COUPON_DISCOUNT_MISMATCH(HttpStatus.CONFLICT, "COUPON_4094", "쿠폰 할인 금액이 변경되었습니다. 다시 시도해주세요."),
+  USER_COUPON_NOT_RESTORABLE(HttpStatus.CONFLICT, "COUPON_4095", "사용되지 않은 쿠폰은 복구할 수 없습니다.");
 
   private final HttpStatus status;
   private final String code;

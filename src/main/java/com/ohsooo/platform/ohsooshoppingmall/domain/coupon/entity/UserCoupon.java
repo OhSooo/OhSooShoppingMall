@@ -1,6 +1,8 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.coupon.entity;
 
+import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.exception.CouponErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.entity.User;
+import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -94,12 +96,35 @@ public class UserCoupon {
     return UserCouponStatus.AVAILABLE;
   }
 
+  /**
+   * AVAILABLE → USED 전환. 이미 USED인 쿠폰을 다시 사용 처리하면 이전 사용 이력을 덮어쓰게 되므로 막는다.
+   * 사용 기간/최소 주문금액 등 정책 검증은 서비스(UserCouponService)에서 수행한다.
+   */
   public void markUsed(BigDecimal orderAmount, BigDecimal discountAmount, Long orderId, OffsetDateTime usedAt) {
+    if (this.status != UserCouponStatus.AVAILABLE) {
+      throw new BusinessException(CouponErrorCode.USER_COUPON_ALREADY_USED);
+    }
     this.status = UserCouponStatus.USED;
     this.usedOrderAmount = orderAmount;
     this.discountAppliedAmount = discountAmount;
     this.usedOrderId = orderId;
     this.usedAt = usedAt;
+  }
+
+  /**
+   * USED → AVAILABLE 복구(주문 취소/환불 시). 사용 이력 필드를 초기화한다.
+   * - 쿠폰의 사용 기간은 연장하지 않는다. 기간이 이미 지났다면 effectiveStatus()가 EXPIRED로 판단하므로 다시 사용할 수 없다.
+   * - USED가 아닌 쿠폰의 복구는 잘못된 상태 전환으로 보고 거부한다.
+   */
+  public void restore() {
+    if (this.status != UserCouponStatus.USED) {
+      throw new BusinessException(CouponErrorCode.USER_COUPON_NOT_RESTORABLE);
+    }
+    this.status = UserCouponStatus.AVAILABLE;
+    this.usedOrderAmount = null;
+    this.discountAppliedAmount = null;
+    this.usedOrderId = null;
+    this.usedAt = null;
   }
 
   @PrePersist

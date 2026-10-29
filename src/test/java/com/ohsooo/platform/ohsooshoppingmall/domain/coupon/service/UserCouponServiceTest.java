@@ -3,6 +3,7 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.coupon.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -11,6 +12,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.response.UserCoup
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.entity.Coupon;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.entity.DiscountType;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.entity.UserCoupon;
+import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.entity.UserCouponStatus;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.exception.CouponErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.mapper.CouponMapper;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.repository.UserCouponRepository;
@@ -19,6 +21,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.repository.Use
 import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
@@ -252,7 +255,7 @@ class UserCouponServiceTest {
         NOW.minusDays(2), NOW.plusDays(2), NOW.minusDays(1), NOW.plusDays(1)
     );
     UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), coupon, NOW);
-    when(userCouponRepository.findById(100L)).thenReturn(Optional.of(userCoupon));
+    when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
 
     CouponDiscountResponseDto response =
         userCouponService.useCoupon(OWNER_ID, 100L, BigDecimal.valueOf(3000), null);
@@ -269,7 +272,7 @@ class UserCouponServiceTest {
         NOW.minusDays(2), NOW.plusDays(2), NOW.minusDays(1), NOW.plusDays(1)
     );
     UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), coupon, NOW);
-    when(userCouponRepository.findById(100L)).thenReturn(Optional.of(userCoupon));
+    when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
 
     CouponDiscountResponseDto response =
         userCouponService.useCoupon(OWNER_ID, 100L, BigDecimal.valueOf(10000), null);
@@ -285,7 +288,7 @@ class UserCouponServiceTest {
         NOW.minusDays(2), NOW.plusDays(2), NOW.minusDays(1), NOW.plusDays(1)
     );
     UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), coupon, NOW);
-    when(userCouponRepository.findById(100L)).thenReturn(Optional.of(userCoupon));
+    when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
 
     assertThatThrownBy(() -> userCouponService.useCoupon(OWNER_ID, 100L, BigDecimal.valueOf(5000), null))
         .isInstanceOf(BusinessException.class)
@@ -301,7 +304,7 @@ class UserCouponServiceTest {
         NOW.minusDays(2), NOW.plusDays(2), NOW.plusDays(1), NOW.plusDays(2)
     );
     UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), coupon, NOW);
-    when(userCouponRepository.findById(100L)).thenReturn(Optional.of(userCoupon));
+    when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
 
     assertThatThrownBy(() -> userCouponService.useCoupon(OWNER_ID, 100L, BigDecimal.valueOf(5000), null))
         .isInstanceOf(BusinessException.class)
@@ -317,7 +320,7 @@ class UserCouponServiceTest {
         NOW.minusDays(3), NOW.minusDays(2), NOW.minusDays(2), NOW.minusDays(1)
     );
     UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), coupon, NOW.minusDays(3));
-    when(userCouponRepository.findById(100L)).thenReturn(Optional.of(userCoupon));
+    when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
 
     assertThatThrownBy(() -> userCouponService.useCoupon(OWNER_ID, 100L, BigDecimal.valueOf(5000), null))
         .isInstanceOf(BusinessException.class)
@@ -331,7 +334,7 @@ class UserCouponServiceTest {
     Coupon coupon = usableNowCoupon();
     UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), coupon, NOW);
     userCoupon.markUsed(BigDecimal.valueOf(1000), BigDecimal.valueOf(500), null, NOW);
-    when(userCouponRepository.findById(100L)).thenReturn(Optional.of(userCoupon));
+    when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
 
     assertThatThrownBy(() -> userCouponService.useCoupon(OWNER_ID, 100L, BigDecimal.valueOf(5000), null))
         .isInstanceOf(BusinessException.class)
@@ -342,7 +345,7 @@ class UserCouponServiceTest {
   @Test
   void 존재하지_않는_유저쿠폰을_사용하면_거부된다() {
     userCouponService = service();
-    when(userCouponRepository.findById(999L)).thenReturn(Optional.empty());
+    when(userCouponRepository.findByIdWithLock(999L)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> userCouponService.useCoupon(OWNER_ID, 999L, BigDecimal.valueOf(5000), null))
         .isInstanceOf(BusinessException.class)
@@ -355,7 +358,7 @@ class UserCouponServiceTest {
     userCouponService = service();
     Coupon coupon = usableNowCoupon();
     UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), coupon, NOW);
-    when(userCouponRepository.findById(100L)).thenReturn(Optional.of(userCoupon));
+    when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
 
     assertThatThrownBy(
         () -> userCouponService.useCoupon(OTHER_USER_ID, 100L, BigDecimal.valueOf(1000), null))
@@ -383,12 +386,230 @@ class UserCouponServiceTest {
     userCouponService = service();
     Coupon coupon = usableNowCoupon();
     UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), coupon, NOW);
-    when(userCouponRepository.findById(100L)).thenReturn(Optional.of(userCoupon));
+    when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
 
     CouponDiscountResponseDto response =
         userCouponService.useCoupon(OWNER_ID, 100L, BigDecimal.valueOf(5000), null);
 
     assertThat(response.getDiscountAmount()).isEqualByComparingTo("3000");
     assertThat(userCoupon.getStatus().name()).isEqualTo("USED");
+  }
+
+  // ---------- 주문용 할인 계산 ----------
+
+  private Coupon percentageCoupon(BigDecimal percent, BigDecimal maxDiscountAmount) {
+    return coupon(
+        DiscountType.PERCENTAGE, percent, null, maxDiscountAmount,
+        NOW.minusDays(2), NOW.plusDays(2), NOW.minusDays(1), NOW.plusDays(1)
+    );
+  }
+
+  @Test
+  void 주문용_할인계산은_미리보기와_같은_금액을_반환한다() {
+    userCouponService = service();
+    UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), percentageCoupon(BigDecimal.valueOf(15), null), NOW);
+    when(userCouponRepository.findById(100L)).thenReturn(Optional.of(userCoupon));
+    BigDecimal orderAmount = BigDecimal.valueOf(10999);
+
+    BigDecimal discount = userCouponService.calculateDiscount(OWNER_ID, 100L, orderAmount);
+    CouponDiscountResponseDto preview = userCouponService.previewDiscount(OWNER_ID, 100L, orderAmount);
+
+    assertThat(discount).isEqualByComparingTo("1649");
+    assertThat(preview.getDiscountAmount()).isEqualByComparingTo(discount);
+  }
+
+  @Test
+  void 주문용_할인계산은_쿠폰_상태를_바꾸지_않고_락도_잡지_않는다() {
+    userCouponService = service();
+    UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), usableNowCoupon(), NOW);
+    when(userCouponRepository.findById(100L)).thenReturn(Optional.of(userCoupon));
+
+    userCouponService.calculateDiscount(OWNER_ID, 100L, BigDecimal.valueOf(5000));
+
+    assertThat(userCoupon.getStatus()).isEqualTo(UserCouponStatus.AVAILABLE);
+    assertThat(userCoupon.getUsedOrderId()).isNull();
+    verify(userCouponRepository, never()).findByIdWithLock(any());
+  }
+
+  @Test
+  void 주문용_할인계산은_타인_쿠폰을_거부한다() {
+    userCouponService = service();
+    UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), usableNowCoupon(), NOW);
+    when(userCouponRepository.findById(100L)).thenReturn(Optional.of(userCoupon));
+
+    assertThatThrownBy(() -> userCouponService.calculateDiscount(OTHER_USER_ID, 100L, BigDecimal.valueOf(5000)))
+        .isInstanceOf(BusinessException.class)
+        .extracting(e -> ((BusinessException) e).getErrorCode())
+        .isEqualTo(CouponErrorCode.USER_COUPON_ACCESS_DENIED);
+  }
+
+  @Test
+  void 주문용_할인계산은_이미_사용된_쿠폰을_거부한다() {
+    userCouponService = service();
+    UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), usableNowCoupon(), NOW);
+    userCoupon.markUsed(BigDecimal.valueOf(5000), BigDecimal.valueOf(3000), 1L, NOW);
+    when(userCouponRepository.findById(100L)).thenReturn(Optional.of(userCoupon));
+
+    assertThatThrownBy(() -> userCouponService.calculateDiscount(OWNER_ID, 100L, BigDecimal.valueOf(5000)))
+        .isInstanceOf(BusinessException.class)
+        .extracting(e -> ((BusinessException) e).getErrorCode())
+        .isEqualTo(CouponErrorCode.USER_COUPON_ALREADY_USED);
+  }
+
+  @Test
+  void 원_미만_단위가_있는_주문금액은_거부된다() {
+    userCouponService = service();
+    UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), usableNowCoupon(), NOW);
+    when(userCouponRepository.findById(100L)).thenReturn(Optional.of(userCoupon));
+
+    assertThatThrownBy(() -> userCouponService.calculateDiscount(OWNER_ID, 100L, new BigDecimal("5000.50")))
+        .isInstanceOf(BusinessException.class)
+        .extracting(e -> ((BusinessException) e).getErrorCode())
+        .isEqualTo(CouponErrorCode.INVALID_ORDER_AMOUNT);
+  }
+
+  // ---------- 주문용 실제 사용(redeem) ----------
+
+  @Test
+  void redeem은_락으로_조회한_쿠폰을_USED로_바꾸고_사용이력을_기록한다() {
+    userCouponService = service();
+    UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), percentageCoupon(BigDecimal.valueOf(15), null), NOW);
+    when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
+
+    BigDecimal applied = userCouponService.redeem(
+        OWNER_ID, 100L, 77L, BigDecimal.valueOf(10999), BigDecimal.valueOf(1649));
+
+    assertThat(applied).isEqualByComparingTo("1649");
+    assertThat(userCoupon.getStatus()).isEqualTo(UserCouponStatus.USED);
+    assertThat(userCoupon.getUsedOrderId()).isEqualTo(77L);
+    assertThat(userCoupon.getUsedOrderAmount()).isEqualByComparingTo("10999");
+    assertThat(userCoupon.getDiscountAppliedAmount()).isEqualByComparingTo("1649");
+    assertThat(userCoupon.getUsedAt()).isNotNull();
+    verify(userCouponRepository, never()).findById(any());
+  }
+
+  @Test
+  void redeem시_재계산한_할인액이_예상과_다르면_거부되고_쿠폰은_그대로다() {
+    userCouponService = service();
+    UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), usableNowCoupon(), NOW);
+    when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
+
+    assertThatThrownBy(() -> userCouponService.redeem(
+        OWNER_ID, 100L, 77L, BigDecimal.valueOf(5000), BigDecimal.valueOf(2000)))
+        .isInstanceOf(BusinessException.class)
+        .extracting(e -> ((BusinessException) e).getErrorCode())
+        .isEqualTo(CouponErrorCode.COUPON_DISCOUNT_MISMATCH);
+    assertThat(userCoupon.getStatus()).isEqualTo(UserCouponStatus.AVAILABLE);
+  }
+
+  @Test
+  void redeem은_이미_사용된_쿠폰을_거부하고_기존_사용이력을_유지한다() {
+    userCouponService = service();
+    UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), usableNowCoupon(), NOW);
+    userCoupon.markUsed(BigDecimal.valueOf(5000), BigDecimal.valueOf(3000), 1L, NOW);
+    when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
+
+    assertThatThrownBy(() -> userCouponService.redeem(
+        OWNER_ID, 100L, 2L, BigDecimal.valueOf(5000), BigDecimal.valueOf(3000)))
+        .isInstanceOf(BusinessException.class)
+        .extracting(e -> ((BusinessException) e).getErrorCode())
+        .isEqualTo(CouponErrorCode.USER_COUPON_ALREADY_USED);
+    assertThat(userCoupon.getUsedOrderId()).isEqualTo(1L);
+  }
+
+  @Test
+  void redeem은_타인_쿠폰을_거부한다() {
+    userCouponService = service();
+    UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), usableNowCoupon(), NOW);
+    when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
+
+    assertThatThrownBy(() -> userCouponService.redeem(
+        OTHER_USER_ID, 100L, 77L, BigDecimal.valueOf(5000), BigDecimal.valueOf(3000)))
+        .isInstanceOf(BusinessException.class)
+        .extracting(e -> ((BusinessException) e).getErrorCode())
+        .isEqualTo(CouponErrorCode.USER_COUPON_ACCESS_DENIED);
+    assertThat(userCoupon.getStatus()).isEqualTo(UserCouponStatus.AVAILABLE);
+  }
+
+  @Test
+  void redeem은_주문ID가_없으면_거부된다() {
+    userCouponService = service();
+
+    assertThatThrownBy(() -> userCouponService.redeem(
+        OWNER_ID, 100L, null, BigDecimal.valueOf(5000), BigDecimal.valueOf(3000)))
+        .isInstanceOf(BusinessException.class)
+        .extracting(e -> ((BusinessException) e).getErrorCode())
+        .isEqualTo(CouponErrorCode.INVALID_ORDER_ID);
+    verify(userCouponRepository, never()).findByIdWithLock(any());
+  }
+
+  // ---------- 주문 취소/환불 시 복구 ----------
+
+  @Test
+  void releaseByOrder는_해당_주문에_사용된_쿠폰을_복구한다() {
+    userCouponService = service();
+    UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), usableNowCoupon(), NOW);
+    userCoupon.markUsed(BigDecimal.valueOf(5000), BigDecimal.valueOf(3000), 77L, NOW);
+    when(userCouponRepository.findByUsedOrderIdWithLock(77L)).thenReturn(List.of(userCoupon));
+
+    int released = userCouponService.releaseByOrder(77L);
+
+    assertThat(released).isEqualTo(1);
+    assertThat(userCoupon.getStatus()).isEqualTo(UserCouponStatus.AVAILABLE);
+    assertThat(userCoupon.getUsedOrderId()).isNull();
+  }
+
+  @Test
+  void releaseByOrder는_복구할_쿠폰이_없으면_0을_반환한다() {
+    userCouponService = service();
+    when(userCouponRepository.findByUsedOrderIdWithLock(77L)).thenReturn(List.of());
+
+    assertThat(userCouponService.releaseByOrder(77L)).isZero();
+  }
+
+  @Test
+  void 복구된_쿠폰은_다시_할인계산에_사용할_수_있다() {
+    userCouponService = service();
+    UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), usableNowCoupon(), NOW);
+    userCoupon.markUsed(BigDecimal.valueOf(5000), BigDecimal.valueOf(3000), 77L, NOW);
+    when(userCouponRepository.findByUsedOrderIdWithLock(77L)).thenReturn(List.of(userCoupon));
+    when(userCouponRepository.findById(100L)).thenReturn(Optional.of(userCoupon));
+
+    userCouponService.releaseByOrder(77L);
+
+    assertThat(userCouponService.calculateDiscount(OWNER_ID, 100L, BigDecimal.valueOf(5000)))
+        .isEqualByComparingTo("3000");
+  }
+
+  @Test
+  void 사용기간이_지난_쿠폰은_복구되어도_만료로_판단되어_사용할_수_없다() {
+    userCouponService = service();
+    Coupon expired = coupon(
+        DiscountType.FIXED_AMOUNT, BigDecimal.valueOf(1000), null, null,
+        NOW.minusDays(3), NOW.minusDays(2), NOW.minusDays(2), NOW.minusDays(1)
+    );
+    UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), expired, NOW.minusDays(3));
+    userCoupon.markUsed(BigDecimal.valueOf(5000), BigDecimal.valueOf(1000), 77L, NOW.minusDays(2));
+    when(userCouponRepository.findByUsedOrderIdWithLock(77L)).thenReturn(List.of(userCoupon));
+    when(userCouponRepository.findById(100L)).thenReturn(Optional.of(userCoupon));
+
+    userCouponService.releaseByOrder(77L);
+
+    assertThat(userCoupon.effectiveStatus(NOW)).isEqualTo(UserCouponStatus.EXPIRED);
+    assertThat(expired.getUseEndAt()).isEqualTo(NOW.minusDays(1));
+    assertThatThrownBy(() -> userCouponService.calculateDiscount(OWNER_ID, 100L, BigDecimal.valueOf(5000)))
+        .isInstanceOf(BusinessException.class)
+        .extracting(e -> ((BusinessException) e).getErrorCode())
+        .isEqualTo(CouponErrorCode.USER_COUPON_EXPIRED);
+  }
+
+  @Test
+  void releaseByOrder는_주문ID가_없으면_거부된다() {
+    userCouponService = service();
+
+    assertThatThrownBy(() -> userCouponService.releaseByOrder(null))
+        .isInstanceOf(BusinessException.class)
+        .extracting(e -> ((BusinessException) e).getErrorCode())
+        .isEqualTo(CouponErrorCode.INVALID_ORDER_ID);
   }
 }

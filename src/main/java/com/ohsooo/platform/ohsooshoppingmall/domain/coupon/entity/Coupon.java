@@ -128,6 +128,17 @@ public class Coupon {
     if (maxDiscountAmount != null && maxDiscountAmount.compareTo(BigDecimal.ZERO) <= 0) {
       throw new BusinessException(CouponErrorCode.INVALID_DISCOUNT_POLICY);
     }
+    // 금액 값은 원 단위(정수)만 허용한다. 정률(%) 값은 금액이 아니므로 대상이 아니다.
+    if ((discountType == DiscountType.FIXED_AMOUNT && !isWholeWon(discountValue))
+        || (minOrderAmount != null && !isWholeWon(minOrderAmount))
+        || (maxDiscountAmount != null && !isWholeWon(maxDiscountAmount))) {
+      throw new BusinessException(CouponErrorCode.INVALID_DISCOUNT_POLICY);
+    }
+  }
+
+  /** 원 미만(소수점) 금액이 없는지 확인한다. 예) 1000, 1000.00 → true / 1000.50 → false */
+  public static boolean isWholeWon(BigDecimal amount) {
+    return amount.stripTrailingZeros().scale() <= 0;
   }
 
   private static void validatePeriod(
@@ -157,9 +168,11 @@ public class Coupon {
   }
 
   /**
-   * 주문 금액 기준 할인 금액을 계산한다.
+   * 주문 금액 기준 할인 금액을 원 단위로 계산한다.
+   * - orderAmount: 배송비를 제외한 상품 금액 합계
    * - FIXED_AMOUNT: discountValue와 주문금액 중 작은 값
-   * - PERCENTAGE: 주문금액 * discountValue%를 계산 후 maxDiscountAmount로 캡, 주문금액을 넘지 않도록 캡
+   * - PERCENTAGE: 주문금액 * discountValue%를 원 미만 절사 후 maxDiscountAmount로 캡, 주문금액을 넘지 않도록 캡
+   * - 할인액이 주문금액과 같아 최종 금액이 0원이 되는 것은 허용한다.
    */
   public BigDecimal calculateDiscount(BigDecimal orderAmount) {
     BigDecimal discount;
@@ -168,7 +181,7 @@ public class Coupon {
     } else {
       discount = orderAmount
           .multiply(discountValue)
-          .divide(HUNDRED, 2, RoundingMode.DOWN);
+          .divide(HUNDRED, 0, RoundingMode.DOWN);
       if (maxDiscountAmount != null) {
         discount = discount.min(maxDiscountAmount);
       }
