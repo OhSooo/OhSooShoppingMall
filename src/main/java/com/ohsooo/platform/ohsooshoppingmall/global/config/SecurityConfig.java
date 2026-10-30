@@ -133,8 +133,18 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/catalog/option")
                 .hasRole("OWNER")
 
+                // coupon (구체적인 /coupons/my/** 규칙을 먼저 평가해서 /coupons/* permitAll에 매칭되지 않게 함)
+                .requestMatchers("/coupons/my/**")
+                .authenticated()
+
+                .requestMatchers(HttpMethod.GET, "/coupons", "/coupons/*")
+                .permitAll()
+
                 // ADMIN
                 .requestMatchers(HttpMethod.PATCH, "/admin/stores/*/status")
+                .hasRole("ADMIN")
+
+                .requestMatchers(HttpMethod.POST, "/admin/coupons")
                 .hasRole("ADMIN")
 
                 .anyRequest().authenticated()
