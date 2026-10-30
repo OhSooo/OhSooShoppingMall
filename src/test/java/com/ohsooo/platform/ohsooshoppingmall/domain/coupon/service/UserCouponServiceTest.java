@@ -3,11 +3,14 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.coupon.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.request.UserCouponSearchRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.response.CouponDiscountResponseDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.response.UserCouponPageResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.response.UserCouponResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.entity.Coupon;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.entity.DiscountType;
@@ -26,12 +29,16 @@ import java.util.Optional;
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 @ExtendWith(MockitoExtension.class)
 class UserCouponServiceTest {
@@ -611,5 +618,79 @@ class UserCouponServiceTest {
         .isInstanceOf(BusinessException.class)
         .extracting(e -> ((BusinessException) e).getErrorCode())
         .isEqualTo(CouponErrorCode.INVALID_ORDER_ID);
+  }
+
+  // ---------- 내 쿠폰 목록 ----------
+
+  private UserCouponSearchRequestDto searchCondition(int page, int size, UserCouponStatus status) {
+    UserCouponSearchRequestDto condition = new UserCouponSearchRequestDto();
+    condition.setPage(page);
+    condition.setSize(size);
+    condition.setStatus(status);
+    return condition;
+  }
+
+  @Test
+  void 내쿠폰_목록은_발급일시_최신순과_ID_내림차순으로_DB_페이지_조회한다() {
+    userCouponService = service();
+    ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+    when(userCouponRepository.findMyCoupons(any(), pageableCaptor.capture()))
+        .thenAnswer(inv -> new PageImpl<UserCoupon>(List.of(), inv.getArgument(1), 0));
+
+    userCouponService.getMyCoupons(OWNER_ID, searchCondition(2, 30, null));
+
+    Pageable pageable = pageableCaptor.getValue();
+    assertThat(pageable.getPageNumber()).isEqualTo(2);
+    assertThat(pageable.getPageSize()).isEqualTo(30);
+    assertThat(pageable.getSort())
+        .containsExactly(Sort.Order.desc("issuedAt"), Sort.Order.desc("userCouponId"));
+  }
+
+  @Test
+  void 상태필터에_따라_해당_조건의_조회쿼리를_사용한다() {
+    userCouponService = service();
+    when(userCouponRepository.findMyCouponsByStoredStatus(any(), any(), any()))
+        .thenAnswer(inv -> new PageImpl<UserCoupon>(List.of(), inv.getArgument(2), 0));
+    when(userCouponRepository.findMyUnusedCouponsNotExpired(any(), any(), any(), any()))
+        .thenAnswer(inv -> new PageImpl<UserCoupon>(List.of(), inv.getArgument(3), 0));
+    when(userCouponRepository.findMyUnusedCouponsExpired(any(), any(), any(), any()))
+        .thenAnswer(inv -> new PageImpl<UserCoupon>(List.of(), inv.getArgument(3), 0));
+
+    userCouponService.getMyCoupons(OWNER_ID, searchCondition(0, 20, UserCouponStatus.USED));
+    userCouponService.getMyCoupons(OWNER_ID, searchCondition(0, 20, UserCouponStatus.AVAILABLE));
+    userCouponService.getMyCoupons(OWNER_ID, searchCondition(0, 20, UserCouponStatus.EXPIRED));
+
+    verify(userCouponRepository).findMyCouponsByStoredStatus(eq(OWNER_ID), eq(UserCouponStatus.USED), any());
+    verify(userCouponRepository).findMyUnusedCouponsNotExpired(eq(OWNER_ID), eq(UserCouponStatus.USED), any(), any());
+    verify(userCouponRepository).findMyUnusedCouponsExpired(eq(OWNER_ID), eq(UserCouponStatus.USED), any(), any());
+    verify(userCouponRepository, never()).findMyCoupons(any(), any());
+  }
+
+  @Test
+  void 내쿠폰_목록_응답은_쿠폰목록과_페이지정보를_분리하고_조회시점_상태를_담는다() {
+    userCouponService = service();
+    Coupon notYetUsable = coupon(
+        DiscountType.FIXED_AMOUNT, BigDecimal.valueOf(1000), null, null,
+        NOW.minusDays(2), NOW.plusDays(2), NOW.plusDays(1), NOW.plusDays(3)
+    );
+    UserCoupon usable = UserCoupon.issue(mockUser(OWNER_ID), usableNowCoupon(), NOW);
+    UserCoupon notYet = UserCoupon.issue(mockUser(OWNER_ID), notYetUsable, NOW);
+    when(userCouponRepository.findMyCoupons(eq(OWNER_ID), any()))
+        .thenAnswer(inv -> new PageImpl<>(List.of(usable, notYet), inv.getArgument(1), 5));
+
+    UserCouponPageResponseDto response = userCouponService.getMyCoupons(OWNER_ID, searchCondition(1, 3, null));
+
+    assertThat(response.getCoupons()).hasSize(2);
+    assertThat(response.getCoupons()).extracting(UserCouponResponseDto::getStatus)
+        .containsExactly(UserCouponStatus.AVAILABLE, UserCouponStatus.AVAILABLE);
+    assertThat(response.getCoupons()).extracting(UserCouponResponseDto::isUsableNow)
+        .containsExactly(true, false);
+    assertThat(response.getCoupons().get(0).getCoupon().getName()).isEqualTo("테스트쿠폰");
+    UserCouponPageResponseDto.PageInfo pageInfo = response.getPageInfo();
+    assertThat(pageInfo.getPage()).isEqualTo(1);
+    assertThat(pageInfo.getSize()).isEqualTo(3);
+    assertThat(pageInfo.getTotalElements()).isEqualTo(5);
+    assertThat(pageInfo.getTotalPages()).isEqualTo(2);
+    assertThat(pageInfo.isLast()).isTrue();
   }
 }

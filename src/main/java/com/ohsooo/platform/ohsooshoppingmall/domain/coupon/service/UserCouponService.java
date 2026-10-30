@@ -1,6 +1,8 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.coupon.service;
 
+import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.request.UserCouponSearchRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.response.CouponDiscountResponseDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.response.UserCouponPageResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.response.UserCouponResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.entity.Coupon;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.entity.UserCoupon;
@@ -14,12 +16,17 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.repository.Use
 import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.ServerErrorMessage;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +38,8 @@ public class UserCouponService {
 
   private static final String USER_COUPON_UNIQUE_CONSTRAINT = "uq_user_coupon";
   private static final String UNIQUE_VIOLATION_SQL_STATE = "23505";
+  private static final Sort MY_COUPONS_SORT =
+      Sort.by(Sort.Order.desc("issuedAt"), Sort.Order.desc("userCouponId"));
 
   private final UserCouponRepository userCouponRepository;
   private final UserRepository userRepository;
@@ -82,12 +91,32 @@ public class UserCouponService {
     return false;
   }
 
+  /**
+   * 내 쿠폰 목록을 DB 수준에서 페이지 조회한다.
+   * - status 필터는 effectiveStatus() 기준이며, 페이지네이션 전에 WHERE 조건으로 적용되어 totalElements가 정확하다.
+   * - 정렬은 발급일시 최신순, 같은 발급일시는 userCouponId 내림차순으로 고정해 페이지 간 중복/누락을 막는다.
+   * - page/size 범위 검증은 요청 DTO(Bean Validation)에서 수행한다.
+   */
   @Transactional(readOnly = true)
-  public List<UserCouponResponseDto> getMyCoupons(Long userId) {
-    OffsetDateTime now = OffsetDateTime.now();
-    return userCouponRepository.findByUser_UserIdOrderByIssuedAtDesc(userId).stream()
-        .map(uc -> couponMapper.toUserCouponResponseDto(uc, now))
-        .toList();
+  public UserCouponPageResponseDto getMyCoupons(Long userId, UserCouponSearchRequestDto condition) {
+    // DB(timestamptz)는 마이크로초 정밀도라, 같은 now로 DB 필터와 effectiveStatus()가 경계에서 엇갈리지 않도록 맞춘다.
+    OffsetDateTime now = OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS);
+    Pageable pageable = PageRequest.of(condition.getPage(), condition.getSize(), MY_COUPONS_SORT);
+    UserCouponStatus status = condition.getStatus();
+
+    Page<UserCoupon> page;
+    if (status == null) {
+      page = userCouponRepository.findMyCoupons(userId, pageable);
+    } else {
+      page = switch (status) {
+        case USED -> userCouponRepository.findMyCouponsByStoredStatus(userId, UserCouponStatus.USED, pageable);
+        case AVAILABLE -> userCouponRepository.findMyUnusedCouponsNotExpired(
+            userId, UserCouponStatus.USED, now, pageable);
+        case EXPIRED -> userCouponRepository.findMyUnusedCouponsExpired(
+            userId, UserCouponStatus.USED, now, pageable);
+      };
+    }
+    return couponMapper.toUserCouponPageResponseDto(page, now);
   }
 
   @Transactional(readOnly = true)

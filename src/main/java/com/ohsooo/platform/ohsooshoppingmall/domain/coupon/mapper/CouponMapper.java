@@ -2,11 +2,13 @@ package com.ohsooo.platform.ohsooshoppingmall.domain.coupon.mapper;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.response.CouponDiscountResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.response.CouponResponseDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.response.UserCouponPageResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.response.UserCouponResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.entity.Coupon;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.entity.UserCoupon;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -32,9 +34,25 @@ public class CouponMapper {
         userCoupon.getUserCouponId(),
         toCouponResponseDto(userCoupon.getCoupon()),
         userCoupon.effectiveStatus(now),
+        userCoupon.isUsableAt(now),
         userCoupon.getIssuedAt(),
         userCoupon.getUsedAt(),
         userCoupon.getDiscountAppliedAmount()
+    );
+  }
+
+  public UserCouponPageResponseDto toUserCouponPageResponseDto(Page<UserCoupon> page, OffsetDateTime now) {
+    return new UserCouponPageResponseDto(
+        page.getContent().stream()
+            .map(uc -> toUserCouponResponseDto(uc, now))
+            .toList(),
+        new UserCouponPageResponseDto.PageInfo(
+            page.getNumber(),
+            page.getSize(),
+            page.getTotalElements(),
+            page.getTotalPages(),
+            page.isLast()
+        )
     );
   }
 

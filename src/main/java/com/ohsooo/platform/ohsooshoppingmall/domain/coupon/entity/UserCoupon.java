@@ -97,6 +97,15 @@ public class UserCoupon {
   }
 
   /**
+   * 현재 시점에 사용 기간 안에 있는 미사용 쿠폰인지 여부.
+   * - effectiveStatus()는 사용 시작 전 쿠폰도 AVAILABLE로 보므로, "지금 바로 사용 가능"은 이 메서드로 구분한다.
+   * - 최소 주문 금액 조건은 주문 금액이 있어야 판단할 수 있으므로 포함하지 않는다.
+   */
+  public boolean isUsableAt(OffsetDateTime now) {
+    return effectiveStatus(now) == UserCouponStatus.AVAILABLE && coupon.isUsableAt(now);
+  }
+
+  /**
    * AVAILABLE → USED 전환. 이미 USED인 쿠폰을 다시 사용 처리하면 이전 사용 이력을 덮어쓰게 되므로 막는다.
    * 사용 기간/최소 주문금액 등 정책 검증은 서비스(UserCouponService)에서 수행한다.
    */

@@ -1,8 +1,10 @@
 package com.ohsooo.platform.ohsooshoppingmall.domain.coupon.controller;
 
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.request.CouponOrderAmountRequestDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.request.UserCouponSearchRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.response.CouponDiscountResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.response.CouponResponseDto;
+import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.response.UserCouponPageResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.dto.response.UserCouponResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.service.CouponService;
 import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.service.UserCouponService;
@@ -12,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -49,12 +52,25 @@ public class CouponController {
     return ResponseEntity.ok(BaseResponse.success("쿠폰 발급 성공", response));
   }
 
-  @Operation(summary = "내 쿠폰 목록 조회", description = "로그인한 사용자가 발급받은 쿠폰 목록을 조회합니다.")
+  @Operation(
+      summary = "내 쿠폰 목록 조회",
+      description = """
+          로그인한 사용자가 발급받은 쿠폰 목록을 페이지 단위로 조회합니다.
+
+          - 정렬: 발급일시 최신순, 같은 발급일시는 userCouponId 내림차순 (고정)
+          - page는 0부터 시작, size 기본 20 / 최대 100
+          - status 필터는 조회 시점 기준 상태로 적용되며 totalElements/totalPages도 필터 결과 기준입니다.
+          - AVAILABLE에는 사용 시작 전 쿠폰도 포함됩니다. 지금 바로 사용 가능한지는 usableNow로 확인합니다.
+          - 범위를 벗어난 page는 빈 coupons와 함께 200으로 응답합니다.
+          - page < 0, page > 21474836, size < 1, size > 100, 숫자가 아닌 page/size, 정의되지 않은 status는 400(COMMON_400)입니다.
+          """
+  )
   @GetMapping("/my")
-  public ResponseEntity<BaseResponse<List<UserCouponResponseDto>>> getMyCoupons(
-      @AuthenticationPrincipal Long userId
+  public ResponseEntity<BaseResponse<UserCouponPageResponseDto>> getMyCoupons(
+      @AuthenticationPrincipal Long userId,
+      @Valid @ParameterObject UserCouponSearchRequestDto condition
   ) {
-    List<UserCouponResponseDto> response = userCouponService.getMyCoupons(userId);
+    UserCouponPageResponseDto response = userCouponService.getMyCoupons(userId, condition);
     return ResponseEntity.ok(BaseResponse.success("내 쿠폰 목록 조회 성공", response));
   }
 

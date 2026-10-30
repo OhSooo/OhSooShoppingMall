@@ -104,4 +104,56 @@ class UserCouponTest {
         .extracting(e -> ((BusinessException) e).getErrorCode())
         .isEqualTo(CouponErrorCode.USER_COUPON_NOT_RESTORABLE);
   }
+
+  // ---------- 조회 시점 상태 / 지금 사용 가능 여부 ----------
+
+  private UserCoupon userCouponWithUsePeriod(OffsetDateTime useStartAt, OffsetDateTime useEndAt) {
+    Coupon coupon = Coupon.create(
+        "쿠폰", DiscountType.FIXED_AMOUNT, BigDecimal.valueOf(1000), null, null,
+        NOW.minusDays(10), NOW.plusDays(10), useStartAt, useEndAt
+    );
+    return UserCoupon.issue(Mockito.mock(User.class), coupon, NOW);
+  }
+
+  @Test
+  void 사용기간_안의_미사용_쿠폰은_AVAILABLE이고_지금_사용가능하다() {
+    UserCoupon userCoupon = userCouponWithUsePeriod(NOW.minusDays(1), NOW.plusDays(1));
+
+    assertThat(userCoupon.effectiveStatus(NOW)).isEqualTo(UserCouponStatus.AVAILABLE);
+    assertThat(userCoupon.isUsableAt(NOW)).isTrue();
+  }
+
+  @Test
+  void 사용시작_전_쿠폰은_AVAILABLE이지만_지금_사용가능하지_않다() {
+    UserCoupon userCoupon = userCouponWithUsePeriod(NOW.plusDays(1), NOW.plusDays(2));
+
+    assertThat(userCoupon.effectiveStatus(NOW)).isEqualTo(UserCouponStatus.AVAILABLE);
+    assertThat(userCoupon.isUsableAt(NOW)).isFalse();
+  }
+
+  @Test
+  void 사용종료가_지난_미사용_쿠폰은_EXPIRED이고_사용가능하지_않다() {
+    UserCoupon userCoupon = userCouponWithUsePeriod(NOW.minusDays(2), NOW.minusDays(1));
+
+    assertThat(userCoupon.effectiveStatus(NOW)).isEqualTo(UserCouponStatus.EXPIRED);
+    assertThat(userCoupon.isUsableAt(NOW)).isFalse();
+  }
+
+  @Test
+  void 사용종료_시각_정각에는_아직_사용가능하다() {
+    OffsetDateTime useEnd = NOW.plusDays(1);
+    UserCoupon userCoupon = userCouponWithUsePeriod(NOW.minusDays(1), useEnd);
+
+    assertThat(userCoupon.effectiveStatus(useEnd)).isEqualTo(UserCouponStatus.AVAILABLE);
+    assertThat(userCoupon.isUsableAt(useEnd)).isTrue();
+  }
+
+  @Test
+  void 사용한_쿠폰은_USED이고_사용가능하지_않다() {
+    UserCoupon userCoupon = availableUserCoupon();
+    userCoupon.markUsed(BigDecimal.valueOf(10000), BigDecimal.valueOf(1000), 1L, NOW);
+
+    assertThat(userCoupon.effectiveStatus(NOW)).isEqualTo(UserCouponStatus.USED);
+    assertThat(userCoupon.isUsableAt(NOW)).isFalse();
+  }
 }
