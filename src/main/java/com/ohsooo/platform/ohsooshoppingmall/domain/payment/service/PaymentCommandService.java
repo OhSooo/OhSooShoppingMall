@@ -9,6 +9,8 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.payment.dto.request.PaymentC
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.dto.response.PaymentConfirmResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.dto.response.PaymentCreateResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.Payment;
+import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.enums.PaymentMethod;
+import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.enums.PaymentProvider;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.enums.PaymentStatus;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.exception.PaymentErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.mapper.PaymentMapper;
@@ -26,6 +28,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -50,6 +53,14 @@ public class PaymentCommandService {
 
     if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
       throw new BusinessException(PaymentErrorCode.INVALID_PAYMENT_AMOUNT);
+    }
+
+    // NONE/ZERO_AMOUNT는 0원 주문 생성 시 서버 내부에서만 쓰는 값 — 클라이언트 결제 요청에는 허용하지 않음
+    if (request.getProvider() == PaymentProvider.NONE) {
+      throw new BusinessException(PaymentErrorCode.INVALID_PROVIDER);
+    }
+    if (request.getMethod() == PaymentMethod.ZERO_AMOUNT) {
+      throw new BusinessException(PaymentErrorCode.INVALID_METHOD);
     }
 
     // 비관적 락 — 동일 주문에 대한 동시 createPayment 호출을 직렬화해 중복 READY 생성을 방지 (#52)
@@ -79,6 +90,15 @@ public class PaymentCommandService {
     Payment saved = paymentRepository.save(payment);
 
     return paymentMapper.toCreateResponseDto(saved, request);
+  }
+
+  /**
+   * 최종 결제 금액 0원 주문의 결제 행을 PG 호출 없이 CAPTURED로 생성한다.
+   * MANDATORY: 주문 생성 트랜잭션에 참여해 주문/쿠폰/재고와 함께 커밋·롤백되어야 한다.
+   */
+  @Transactional(propagation = Propagation.MANDATORY)
+  public Payment createZeroAmountPayment(Long orderId) {
+    return paymentRepository.save(Payment.zeroAmountCaptured(orderId));
   }
 
   /**

@@ -33,7 +33,10 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.order.mapper.OrderMapper;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.repository.OrderItemHistoryRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.repository.OrderItemRepository;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.repository.OrderRepository;
+import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.service.UserCouponService;
+import com.ohsooo.platform.ohsooshoppingmall.domain.payment.service.PaymentCommandService;
 import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -60,6 +63,8 @@ public class OrderService {
 
   private final InventoryService inventoryService;
   private final PricingService pricingService;
+  private final UserCouponService userCouponService;
+  private final PaymentCommandService paymentCommandService;
   private final OrderMapper orderMapper;
   private final OrderValidator orderValidator;
 
@@ -87,13 +92,44 @@ public class OrderService {
         .toList();
     PricingResult pricing = pricingService.calculate(lineItems);
 
+    // 쿠폰 할인: 서버가 계산한 상품 합계(배송비 제외) 기준. 클라이언트 금액은 사용하지 않는다.
+    Long userCouponId = request.getUserCouponId();
+    BigDecimal itemSubtotal = pricing.originalTotal();
+    BigDecimal couponDiscount = BigDecimal.ZERO;
+    if (userCouponId != null) {
+      couponDiscount = userCouponService.calculateDiscount(userId, userCouponId, itemSubtotal);
+      pricing = pricingService.calculate(lineItems, couponDiscount);
+    }
+
     Order order = orderMapper.toOrderEntity(user, request);
     for (OrderItem oi : orderItems) {
       order.addOrderItem(oi);
     }
     order.applyPricing(pricing);
+    order.applyCoupon(userCouponId);
 
     Order saved = orderRepository.save(order);
+
+    // 쿠폰 사용 확정은 주문과 같은 트랜잭션에서(redeem은 MANDATORY). 예외는 삼키지 않고 전파해 함께 롤백한다.
+    if (userCouponId != null) {
+      userCouponService.redeem(userId, userCouponId, saved.getOrderId(), itemSubtotal, couponDiscount);
+    }
+
+    // 최종 0원 주문: PG 승인 없이 결제 완료 처리. 재고 차감(clearAutomatically로 영속성 컨텍스트가 비워짐)은
+    // 결제 행 생성/PAID 전환/응답 조립이 끝난 뒤 마지막에 수행한다.
+    boolean zeroAmount = saved.getFinalPrice().signum() == 0;
+    if (zeroAmount) {
+      paymentCommandService.createZeroAmountPayment(saved.getOrderId());
+      saved.markPaid();
+    }
+
+    OrderCreateResponseDto response = orderMapper.toCreateResponseDto(saved);
+
+    if (zeroAmount) {
+      for (OrderItem oi : orderItems) {
+        inventoryService.decreaseStock(oi.getItemVariant().getItemVariantId(), oi.getQuantity());
+      }
+    }
 
     OrderCreateRequestDto.OrderSource source = request.getSource();
     if (source == OrderCreateRequestDto.OrderSource.CART_ALL
@@ -104,7 +140,7 @@ public class OrderService {
       removeCartItemsAfterCommit(userId, orderedVariantIds);
     }
 
-    return orderMapper.toCreateResponseDto(saved);
+    return response;
   }
 
   /** 내 주문 목록 조회 */

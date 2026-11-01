@@ -9,6 +9,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.payment.dto.response.RefundR
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.Payment;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.Refund;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.RefundItem;
+import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.enums.PaymentProvider;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.entity.enums.PaymentStatus;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.exception.PaymentErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.payment.mapper.RefundMapper;
@@ -56,6 +57,11 @@ public class RefundCommandService {
 
     // [P-7] CAPTURED 상태일 때만 환불 가능
     if (payment.getStatus() != PaymentStatus.CAPTURED) {
+      throw new BusinessException(PaymentErrorCode.PAYMENT_NOT_REFUNDABLE);
+    }
+
+    // 0원 결제(PG 미경유)는 돌려줄 금액이 없고 PG 취소 대상도 아님 — 0원 주문 취소는 주문 취소 흐름에서 처리
+    if (payment.getProvider() == PaymentProvider.NONE) {
       throw new BusinessException(PaymentErrorCode.PAYMENT_NOT_REFUNDABLE);
     }
 

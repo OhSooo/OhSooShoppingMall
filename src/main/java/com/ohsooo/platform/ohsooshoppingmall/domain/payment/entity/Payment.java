@@ -106,6 +106,25 @@ public class Payment extends BaseTimeEntity {
   }
 
   /**
+   * 최종 결제 금액이 0원인 주문의 결제를 PG 호출 없이 바로 CAPTURED 상태로 생성한다.
+   * - "결제 완료 주문에는 항상 결제 행이 있다"는 규칙을 유지하기 위한 기록용 결제
+   * - provider=NONE, method=ZERO_AMOUNT. PG 키/토스 주문번호는 없음
+   */
+  public static Payment zeroAmountCaptured(Long orderId) {
+    OffsetDateTime now = OffsetDateTime.now();
+    Payment p = new Payment();
+    p.orderId = orderId;
+    p.amount = BigDecimal.ZERO;
+    p.currency = "KRW";
+    p.method = PaymentMethod.ZERO_AMOUNT;
+    p.provider = PaymentProvider.NONE;
+    p.status = PaymentStatus.CAPTURED;
+    p.requestedAt = now;
+    p.approvedAt = now;
+    return p;
+  }
+
+  /**
    * PG API 호출 직전 상태 전환. 트랜잭션 커밋 후 커넥션을 반환하고 API를 호출하는 P-4 패턴에서 사용.
    * CONFIRMING 상태에서 다른 confirm 요청이 오면 validateConfirmable에서 차단됨.
    */
