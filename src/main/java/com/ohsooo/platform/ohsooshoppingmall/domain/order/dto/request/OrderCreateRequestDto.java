@@ -52,6 +52,13 @@ public class OrderCreateRequestDto {
   @Valid
   private ShippingInfo shipping;
 
+  /**
+   * [선택] 적용할 사용자 쿠폰 ID (user_coupons.user_coupon_id)
+   * - null이면 쿠폰 없이 주문
+   * - 할인액은 서버가 계산한 상품 합계(배송비 제외) 기준으로 산출하며, 주문 생성과 함께 쿠폰이 사용 처리됨
+   */
+  private Long userCouponId;
+
   @Getter
   @NoArgsConstructor
   @AllArgsConstructor

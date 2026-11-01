@@ -69,6 +69,7 @@ class OrderServiceCartCleanupTest {
     TransactionSynchronizationManager.initSynchronization();
 
     order = mock(Order.class);
+    lenient().when(order.getFinalPrice()).thenReturn(BigDecimal.valueOf(30000));
     when(userRepository.findById(USER_ID)).thenReturn(Optional.of(mock(User.class)));
     when(orderMapper.toOrderEntity(any(), any())).thenReturn(order);
     when(pricingService.calculate(any())).thenReturn(
@@ -89,7 +90,7 @@ class OrderServiceCartCleanupTest {
 
   private OrderCreateRequestDto request(OrderSource source, List<Long> itemVariantIds,
       List<OrderItemCreateRequestDto> items) {
-    return new OrderCreateRequestDto(source, itemVariantIds, items, null, null);
+    return new OrderCreateRequestDto(source, itemVariantIds, items, null, null, null);
   }
 
   private void simulateCommit() {
