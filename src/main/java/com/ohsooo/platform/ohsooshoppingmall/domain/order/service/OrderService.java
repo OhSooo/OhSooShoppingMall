@@ -77,7 +77,7 @@ public class OrderService {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
 
-    orderValidator.validateShippingRequiredFields(user, request);
+    orderValidator.validateShippingRequiredFields(request);
 
     List<OrderItem> orderItems = switch (request.getSource()) {
       case CART_ALL -> buildOrderItemsFromCartAll(userId);

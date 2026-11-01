@@ -45,10 +45,12 @@ public class OrderCreateRequestDto {
   private String memo;
 
   /**
-   * [선택] 배송 정보
-   * - null이면 서버가 User 기본 배송지/프로필에서 채워서 주문 생성
+   * [필수] 배송 정보
+   * - 사용자가 주문 화면에서 확인한 값만 저장한다. 서버가 회원 프로필 등으로 임의로 채우지 않는다.
+   *   (기본 배송지 사용 시에도 프론트가 회원 정보를 불러와 채운 뒤 전송)
    * - 주문 스냅샷으로 orders 테이블에 저장
    */
+  @NotNull(message = "null이어서는 안됩니다")
   @Valid
   private ShippingInfo shipping;
 
