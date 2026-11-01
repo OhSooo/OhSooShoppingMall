@@ -38,9 +38,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -90,6 +94,16 @@ public class OrderService {
     order.applyPricing(pricing);
 
     Order saved = orderRepository.save(order);
+
+    OrderCreateRequestDto.OrderSource source = request.getSource();
+    if (source == OrderCreateRequestDto.OrderSource.CART_ALL
+        || source == OrderCreateRequestDto.OrderSource.CART_SELECTED) {
+      List<Long> orderedVariantIds = orderItems.stream()
+          .map(oi -> oi.getItemVariant().getItemVariantId())
+          .toList();
+      removeCartItemsAfterCommit(userId, orderedVariantIds);
+    }
+
     return orderMapper.toCreateResponseDto(saved);
   }
 
@@ -210,7 +224,6 @@ public class OrderService {
       result.add(OrderItem.of(variant, qty, variant.getPrice(),
           snapshotProductName(variant), snapshotOptionSummary(variant)));
     }
-    cartService.clearCart(userId);
     return result;
   }
 
@@ -225,17 +238,33 @@ public class OrderService {
     }
 
     List<OrderItem> result = new ArrayList<>();
-    List<Long> toRemove = new ArrayList<>();
     for (CartLineItem li : lineItems) {
       ItemVariant variant = li.variant();
       int qty = li.quantity();
       result.add(OrderItem.of(variant, qty, variant.getPrice(),
           snapshotProductName(variant), snapshotOptionSummary(variant)));
-      toRemove.add(variant.getItemVariantId());
     }
-
-    cartService.removeItems(userId, toRemove);
     return result;
+  }
+
+  /**
+   * 주문 DB 커밋이 성공한 뒤에만 주문에 포함된 상품을 장바구니(Redis)에서 제거한다.
+   * - Redis 삭제는 DB 트랜잭션에 참여하지 않으므로, 커밋 전에 지우면 주문 롤백 시 장바구니만 유실된다.
+   * - CART_ALL도 전체 삭제(clearCart) 대신 주문한 itemVariantId만 지워, 조회 이후 새로 담긴 상품은 남긴다.
+   * - 커밋 이후 삭제 실패는 주문 실패가 아니므로 예외를 전파하지 않고 로그만 남긴다.
+   */
+  private void removeCartItemsAfterCommit(Long userId, List<Long> itemVariantIds) {
+    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+      @Override
+      public void afterCommit() {
+        try {
+          cartService.removeItems(userId, itemVariantIds);
+        } catch (Exception e) {
+          log.error("[createOrder] cart cleanup after commit failed. userId={} itemVariantIds={}",
+              userId, itemVariantIds, e);
+        }
+      }
+    });
   }
 
   private List<OrderItem> buildOrderItemsFromDirect(List<OrderItemCreateRequestDto> items) {
