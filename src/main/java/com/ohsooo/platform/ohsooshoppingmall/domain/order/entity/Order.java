@@ -44,6 +44,10 @@ public class Order {
   @Column(name = "final_price", nullable = false, precision = 19, scale = 2)
   private BigDecimal finalPrice;
 
+  /** 주문에 적용된 사용자 쿠폰 ID (미적용 시 null). 쿠폰이 복구돼도 이력으로 유지한다. */
+  @Column(name = "user_coupon_id")
+  private Long userCouponId;
+
   @Enumerated(EnumType.STRING)
   @Column(name = "status", nullable = false, length = 30)
   private OrderStatus status;
@@ -138,6 +142,10 @@ public class Order {
       throw new IllegalStateException("Order cannot be marked as PAID from status: " + this.status);
     }
     this.status = OrderStatus.PAID;
+  }
+
+  public void applyCoupon(Long userCouponId) {
+    this.userCouponId = userCouponId;
   }
 
   public void applyPricing(PricingResult result) {
