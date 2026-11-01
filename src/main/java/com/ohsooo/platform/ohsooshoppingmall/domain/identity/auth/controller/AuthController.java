@@ -23,6 +23,9 @@ import com.ohsooo.platform.ohsooshoppingmall.global.jwt.TokenService;
 import com.ohsooo.platform.ohsooshoppingmall.global.jwt.mapper.TokenMapper;
 import com.ohsooo.platform.ohsooshoppingmall.global.response.BaseResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -88,6 +91,24 @@ public class AuthController {
   @Operation(
       summary = "로컬 로그인",
       description = "이메일과 비밀번호로 로컬 로그인을 수행합니다. 성공 시 refresh token은 HttpOnly 쿠키로, access token은 응답 바디로 반환됩니다."
+  )
+  @io.swagger.v3.oas.annotations.parameters.RequestBody(
+      required = true,
+      content = @Content(
+          mediaType = "application/json",
+          schema = @Schema(implementation = LocalLoginRequestDto.class),
+          examples = {
+              @ExampleObject(name = "일반 회원 (minji)", value = """
+                  { "email": "minji.kim@test.com", "password": "Test1234!" }
+                  """),
+              @ExampleObject(name = "관리자 (ADMIN)", value = """
+                  { "email": "admin@test.com", "password": "Test1234!" }
+                  """),
+              @ExampleObject(name = "스토어 운영자 (OWNER)", value = """
+                  { "email": "owner1@test.com", "password": "Test1234!" }
+                  """)
+          }
+      )
   )
   @PostMapping("/login/local")
   public ResponseEntity<BaseResponse<AccessTokenResponseDto>> loginLocal(

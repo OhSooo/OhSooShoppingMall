@@ -169,7 +169,12 @@ public class Order {
         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
     this.originalTotalPrice = remainingTotal;
-    this.finalPrice = remainingTotal.subtract(this.discountAmount).add(this.deliveryFee);
+    // 모든 상품이 취소되면 할인을 적용할 대상이 없으므로 할인액도 0
+    if (remainingTotal.signum() == 0) {
+      this.discountAmount = BigDecimal.ZERO;
+    }
+    // 부분 취소로 남은 금액보다 할인액이 커져도 음수가 되지 않도록 방어 (부분 취소 할인 회수 정책은 미정)
+    this.finalPrice = remainingTotal.subtract(this.discountAmount).add(this.deliveryFee).max(BigDecimal.ZERO);
   }
 
   /**

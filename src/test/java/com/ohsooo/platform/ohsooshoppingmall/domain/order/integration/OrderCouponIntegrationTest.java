@@ -11,6 +11,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.inventory.exception.Inventor
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.dto.request.OrderCreateRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.dto.request.OrderCreateRequestDto.OrderSource;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.dto.request.OrderCreateRequestDto.ShippingInfo;
+import com.ohsooo.platform.ohsooshoppingmall.domain.order.dto.request.OrderItemCancelRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.dto.request.OrderItemCreateRequestDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.dto.response.OrderCreateResponseDto;
 import com.ohsooo.platform.ohsooshoppingmall.domain.order.service.OrderService;
@@ -100,6 +101,9 @@ class OrderCouponIntegrationTest {
         "SELECT order_id FROM orders WHERE order_id > ?", Long.class, maxOrderIdBefore);
     for (Long orderId : orderIds) {
       jdbcTemplate.update("DELETE FROM payments WHERE order_id = ?", orderId);
+      jdbcTemplate.update(
+          "DELETE FROM order_item_histories WHERE order_item_id IN (SELECT order_item_id FROM order_items WHERE order_id = ?)",
+          orderId);
       jdbcTemplate.update("DELETE FROM order_items WHERE order_id = ?", orderId);
       jdbcTemplate.update("DELETE FROM orders WHERE order_id = ?", orderId);
     }
@@ -206,5 +210,31 @@ class OrderCouponIntegrationTest {
     Map<String, Object> coupon = userCouponRow(userCouponId);
     assertThat(coupon.get("status")).isEqualTo("AVAILABLE");
     assertThat(coupon.get("used_order_id")).isNull();
+  }
+
+  @Test
+  void 결제전_쿠폰주문을_전체취소하면_쿠폰이_복구되고_금액은_0_재고는_그대로다() {
+    Long userCouponId = issueFixedCoupon(BigDecimal.valueOf(1000));
+    OrderCreateResponseDto res = orderService.createOrder(userId, directOrder(1, userCouponId));
+    Long orderItemId = res.getItems().get(0).getOrderItemId();
+
+    orderService.requestCancelOrderItem(userId, orderItemId, new OrderItemCancelRequestDto("단순 변심"));
+    orderService.confirmCancelOrderItem(userId, orderItemId);
+
+    Map<String, Object> order = jdbcTemplate.queryForMap(
+        "SELECT status, discount_amount, final_price, user_coupon_id FROM orders WHERE order_id = ?",
+        res.getOrderId());
+    assertThat(order.get("status")).isEqualTo("CANCELED");
+    assertThat((BigDecimal) order.get("discount_amount")).isEqualByComparingTo("0");
+    assertThat((BigDecimal) order.get("final_price")).isEqualByComparingTo("0");
+    // 적용 이력은 쿠폰 복구 후에도 유지
+    assertThat(((Number) order.get("user_coupon_id")).longValue()).isEqualTo(userCouponId);
+
+    Map<String, Object> coupon = userCouponRow(userCouponId);
+    assertThat(coupon.get("status")).isEqualTo("AVAILABLE");
+    assertThat(coupon.get("used_order_id")).isNull();
+
+    // 결제 전 주문이라 재고는 차감된 적이 없으므로 취소해도 그대로
+    assertThat(stock()).isEqualTo(originalStock);
   }
 }

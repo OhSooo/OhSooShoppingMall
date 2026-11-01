@@ -77,7 +77,7 @@ public class OrderService {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
 
-    orderValidator.validateShippingRequiredFields(user, request);
+    orderValidator.validateShippingRequiredFields(request);
 
     List<OrderItem> orderItems = switch (request.getSource()) {
       case CART_ALL -> buildOrderItemsFromCartAll(userId);
@@ -203,7 +203,12 @@ public class OrderService {
     return orderMapper.toOrderItemResponseDto(oi);
   }
 
-  /** 주문 상품 취소 확정 (CANCEL_REQUESTED → CANCELED + 재고 복원) */
+  /**
+   * 주문 상품 취소 확정 (CANCEL_REQUESTED → CANCELED)
+   * - 결제 전 주문: 재고는 결제 확정 시점에만 차감되므로(O-1) 재고를 되돌리지 않는다.
+   *   모든 상품이 취소돼 주문이 CANCELED가 되면 사용한 쿠폰을 복구한다.
+   * - 결제가 끝난 주문: 기존 동작 유지(재고 복원). 결제 완료 주문의 취소/환불 정책은 별도로 정리 예정
+   */
   public OrderItemResponseDto confirmCancelOrderItem(Long userId, Long orderItemId) {
     if (userId == null) throw new BusinessException(OrderErrorCode.AUTH_PRINCIPAL_MISSING);
 
@@ -221,13 +226,17 @@ public class OrderService {
     oi.changeStatus(OrderItemStatus.CANCELED);
 
     Order order = oi.getOrder();
+    // CREATED(결제 전)에서 시작해 부분취소가 여러 번 거쳐도(PARTIALLY_CANCELED) 결제 전 주문이다
+    boolean unpaid = order.getStatus() == OrderStatus.CREATED
+        || order.getStatus() == OrderStatus.PARTIALLY_CANCELED;
+
     order.recalculateAmounts();
 
-    // CREATED(결제 전)에서 시작해 부분취소가 여러 번 거쳐도(PARTIALLY_CANCELED) 계속 전환 대상이어야 함
-    if (order.getStatus() == OrderStatus.CREATED || order.getStatus() == OrderStatus.PARTIALLY_CANCELED) {
-      boolean allCanceled = order.getOrderItems().stream()
+    boolean fullyCanceled = false;
+    if (unpaid) {
+      fullyCanceled = order.getOrderItems().stream()
           .allMatch(item -> item.getStatus() == OrderItemStatus.CANCELED);
-      order.changeStatus(allCanceled ? OrderStatus.CANCELED : OrderStatus.PARTIALLY_CANCELED);
+      order.changeStatus(fullyCanceled ? OrderStatus.CANCELED : OrderStatus.PARTIALLY_CANCELED);
     }
 
     OrderItemHistory history = OrderItemHistory.create(oi, prev, oi.getStatus(), OrderChangedBy.GENERAL);
@@ -235,10 +244,17 @@ public class OrderService {
 
     OrderItemResponseDto response = orderMapper.toOrderItemResponseDto(oi);
 
+    // 결제 전 주문이 전체 취소되면 주문 생성 시 사용 처리된 쿠폰을 돌려준다 (부분 취소는 쿠폰 유지)
+    if (fullyCanceled && order.getUserCouponId() != null) {
+      userCouponService.releaseByOrder(order.getOrderId());
+    }
+
     // increaseStock()은 내부적으로 @Modifying(clearAutomatically=true)라 영속성 컨텍스트를 비운다.
     // 위에서 Order/OrderItem 엔티티 작업과 응답 DTO 계산을 모두 마친 뒤 가장 마지막에 호출해야
     // 이후 지연 로딩(LazyInitializationException) 없이 안전하다.
-    inventoryService.increaseStock(itemVariantId, quantity);
+    if (!unpaid) {
+      inventoryService.increaseStock(itemVariantId, quantity);
+    }
 
     return response;
   }
