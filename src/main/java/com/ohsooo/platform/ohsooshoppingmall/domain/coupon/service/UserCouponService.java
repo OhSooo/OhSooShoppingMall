@@ -182,15 +182,6 @@ public class UserCouponService {
     return usedCoupons.size();
   }
 
-  public CouponDiscountResponseDto useCoupon(Long userId, Long userCouponId, BigDecimal orderAmount, Long orderId) {
-    UserCoupon userCoupon = getOwnedUserCouponWithLock(userId, userCouponId);
-    OffsetDateTime now = OffsetDateTime.now();
-    BigDecimal discountAmount = validateAndCalculate(userCoupon, orderAmount, now);
-    userCoupon.markUsed(orderAmount, discountAmount, orderId, now);
-
-    return couponMapper.toCouponDiscountResponseDto(userCoupon, orderAmount, discountAmount);
-  }
-
   private UserCoupon getOwnedUserCoupon(Long userId, Long userCouponId) {
     return verifyOwner(userCouponRepository.findById(userCouponId), userId);
   }

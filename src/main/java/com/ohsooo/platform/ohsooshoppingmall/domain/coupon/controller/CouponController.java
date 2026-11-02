@@ -88,19 +88,4 @@ public class CouponController {
         userCouponService.previewDiscount(userId, userCouponId, request.getOrderAmount());
     return ResponseEntity.ok(BaseResponse.success("쿠폰 할인 미리보기 성공", response));
   }
-
-  @Operation(
-      summary = "쿠폰 사용 처리",
-      description = "쿠폰 사용 가능 여부를 검증하고 할인 금액을 계산한 뒤, 쿠폰을 사용 완료 상태로 처리합니다."
-  )
-  @PostMapping("/my/{userCouponId}/use")
-  public ResponseEntity<BaseResponse<CouponDiscountResponseDto>> useCoupon(
-      @AuthenticationPrincipal Long userId,
-      @PathVariable Long userCouponId,
-      @Valid @RequestBody CouponOrderAmountRequestDto request
-  ) {
-    CouponDiscountResponseDto response =
-        userCouponService.useCoupon(userId, userCouponId, request.getOrderAmount(), request.getOrderId());
-    return ResponseEntity.ok(BaseResponse.success("쿠폰 사용 처리 성공", response));
-  }
 }

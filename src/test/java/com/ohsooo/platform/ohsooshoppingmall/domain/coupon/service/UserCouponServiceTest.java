@@ -262,13 +262,13 @@ class UserCouponServiceTest {
         NOW.minusDays(2), NOW.plusDays(2), NOW.minusDays(1), NOW.plusDays(1)
     );
     UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), coupon, NOW);
-    when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
+    when(userCouponRepository.findById(100L)).thenReturn(Optional.of(userCoupon));
 
-    CouponDiscountResponseDto response =
-        userCouponService.useCoupon(OWNER_ID, 100L, BigDecimal.valueOf(3000), null);
+    BigDecimal discount = userCouponService.calculateDiscount(OWNER_ID, 100L, BigDecimal.valueOf(3000));
+    CouponDiscountResponseDto preview = userCouponService.previewDiscount(OWNER_ID, 100L, BigDecimal.valueOf(3000));
 
-    assertThat(response.getDiscountAmount()).isEqualByComparingTo("3000");
-    assertThat(response.getFinalAmount()).isEqualByComparingTo("0");
+    assertThat(discount).isEqualByComparingTo("3000");
+    assertThat(preview.getFinalAmount()).isEqualByComparingTo("0");
   }
 
   @Test
@@ -279,12 +279,11 @@ class UserCouponServiceTest {
         NOW.minusDays(2), NOW.plusDays(2), NOW.minusDays(1), NOW.plusDays(1)
     );
     UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), coupon, NOW);
-    when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
+    when(userCouponRepository.findById(100L)).thenReturn(Optional.of(userCoupon));
 
-    CouponDiscountResponseDto response =
-        userCouponService.useCoupon(OWNER_ID, 100L, BigDecimal.valueOf(10000), null);
+    BigDecimal discount = userCouponService.calculateDiscount(OWNER_ID, 100L, BigDecimal.valueOf(10000));
 
-    assertThat(response.getDiscountAmount()).isEqualByComparingTo("2000");
+    assertThat(discount).isEqualByComparingTo("2000");
   }
 
   @Test
@@ -297,10 +296,12 @@ class UserCouponServiceTest {
     UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), coupon, NOW);
     when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
 
-    assertThatThrownBy(() -> userCouponService.useCoupon(OWNER_ID, 100L, BigDecimal.valueOf(5000), null))
+    assertThatThrownBy(() -> userCouponService.redeem(
+        OWNER_ID, 100L, 77L, BigDecimal.valueOf(5000), BigDecimal.valueOf(1000)))
         .isInstanceOf(BusinessException.class)
         .extracting(e -> ((BusinessException) e).getErrorCode())
         .isEqualTo(CouponErrorCode.COUPON_MIN_ORDER_AMOUNT_NOT_MET);
+    assertThat(userCoupon.getStatus()).isEqualTo(UserCouponStatus.AVAILABLE);
   }
 
   @Test
@@ -313,10 +314,12 @@ class UserCouponServiceTest {
     UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), coupon, NOW);
     when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
 
-    assertThatThrownBy(() -> userCouponService.useCoupon(OWNER_ID, 100L, BigDecimal.valueOf(5000), null))
+    assertThatThrownBy(() -> userCouponService.redeem(
+        OWNER_ID, 100L, 77L, BigDecimal.valueOf(5000), BigDecimal.valueOf(1000)))
         .isInstanceOf(BusinessException.class)
         .extracting(e -> ((BusinessException) e).getErrorCode())
         .isEqualTo(CouponErrorCode.USER_COUPON_NOT_YET_USABLE);
+    assertThat(userCoupon.getStatus()).isEqualTo(UserCouponStatus.AVAILABLE);
   }
 
   @Test
@@ -329,10 +332,12 @@ class UserCouponServiceTest {
     UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), coupon, NOW.minusDays(3));
     when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
 
-    assertThatThrownBy(() -> userCouponService.useCoupon(OWNER_ID, 100L, BigDecimal.valueOf(5000), null))
+    assertThatThrownBy(() -> userCouponService.redeem(
+        OWNER_ID, 100L, 77L, BigDecimal.valueOf(5000), BigDecimal.valueOf(1000)))
         .isInstanceOf(BusinessException.class)
         .extracting(e -> ((BusinessException) e).getErrorCode())
         .isEqualTo(CouponErrorCode.USER_COUPON_EXPIRED);
+    assertThat(userCoupon.getStatus()).isEqualTo(UserCouponStatus.AVAILABLE);
   }
 
   @Test
@@ -340,10 +345,11 @@ class UserCouponServiceTest {
     userCouponService = service();
     Coupon coupon = usableNowCoupon();
     UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), coupon, NOW);
-    userCoupon.markUsed(BigDecimal.valueOf(1000), BigDecimal.valueOf(500), null, NOW);
+    userCoupon.markUsed(BigDecimal.valueOf(1000), BigDecimal.valueOf(500), 1L, NOW);
     when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
 
-    assertThatThrownBy(() -> userCouponService.useCoupon(OWNER_ID, 100L, BigDecimal.valueOf(5000), null))
+    assertThatThrownBy(() -> userCouponService.redeem(
+        OWNER_ID, 100L, 77L, BigDecimal.valueOf(5000), BigDecimal.valueOf(3000)))
         .isInstanceOf(BusinessException.class)
         .extracting(e -> ((BusinessException) e).getErrorCode())
         .isEqualTo(CouponErrorCode.USER_COUPON_ALREADY_USED);
@@ -354,7 +360,8 @@ class UserCouponServiceTest {
     userCouponService = service();
     when(userCouponRepository.findByIdWithLock(999L)).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> userCouponService.useCoupon(OWNER_ID, 999L, BigDecimal.valueOf(5000), null))
+    assertThatThrownBy(() -> userCouponService.redeem(
+        OWNER_ID, 999L, 77L, BigDecimal.valueOf(5000), BigDecimal.valueOf(3000)))
         .isInstanceOf(BusinessException.class)
         .extracting(e -> ((BusinessException) e).getErrorCode())
         .isEqualTo(CouponErrorCode.USER_COUPON_NOT_FOUND);
@@ -367,8 +374,8 @@ class UserCouponServiceTest {
     UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), coupon, NOW);
     when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
 
-    assertThatThrownBy(
-        () -> userCouponService.useCoupon(OTHER_USER_ID, 100L, BigDecimal.valueOf(1000), null))
+    assertThatThrownBy(() -> userCouponService.redeem(
+        OTHER_USER_ID, 100L, 77L, BigDecimal.valueOf(1000), BigDecimal.valueOf(1000)))
         .isInstanceOf(BusinessException.class)
         .extracting(e -> ((BusinessException) e).getErrorCode())
         .isEqualTo(CouponErrorCode.USER_COUPON_ACCESS_DENIED);
@@ -395,10 +402,10 @@ class UserCouponServiceTest {
     UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), coupon, NOW);
     when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
 
-    CouponDiscountResponseDto response =
-        userCouponService.useCoupon(OWNER_ID, 100L, BigDecimal.valueOf(5000), null);
+    BigDecimal applied = userCouponService.redeem(
+        OWNER_ID, 100L, 77L, BigDecimal.valueOf(5000), BigDecimal.valueOf(3000));
 
-    assertThat(response.getDiscountAmount()).isEqualByComparingTo("3000");
+    assertThat(applied).isEqualByComparingTo("3000");
     assertThat(userCoupon.getStatus().name()).isEqualTo("USED");
   }
 
