@@ -508,7 +508,8 @@ class UserCouponListIntegrationTest {
     assertThat(issued.getCoupon().getMinOrderAmount()).isEqualByComparingTo("5000");
 
     long orderId = 990_500L;
-    userCouponService.useCoupon(userId, userCouponId, BigDecimal.valueOf(10000), orderId);
+    new TransactionTemplate(transactionManager).executeWithoutResult(s -> userCouponService.redeem(
+        userId, userCouponId, orderId, BigDecimal.valueOf(10000), BigDecimal.valueOf(1000)));
     UserCouponResponseDto usedDto = list(userId, 0, 20, UserCouponStatus.USED).getCoupons().get(0);
     assertThat(usedDto.getUserCouponId()).isEqualTo(userCouponId);
     assertThat(usedDto.getDiscountAppliedAmount()).isEqualByComparingTo("1000");

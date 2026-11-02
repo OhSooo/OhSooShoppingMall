@@ -14,6 +14,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.entity.User;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.exception.UserErrorCode;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.repository.UserRepository;
 import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
@@ -45,6 +46,7 @@ public class UserCouponService {
   private final UserRepository userRepository;
   private final CouponService couponService;
   private final CouponMapper couponMapper;
+  private final EntityManager entityManager;
 
   public UserCouponResponseDto issueCoupon(Long userId, Long couponId) {
     Coupon coupon = couponService.getCouponEntity(couponId);
@@ -140,7 +142,7 @@ public class UserCouponService {
 
   /**
    * 주문 생성 트랜잭션 안에서 쿠폰을 실제로 사용 처리한다. (AVAILABLE → USED)
-   * - user_coupons 행에 비관적 락을 잡은 뒤 소유권/사용 가능 여부를 재검증하므로, 동시 요청 중 한 건만 성공한다.
+   * - user_coupons 행에 비관적 락을 잡고 최신 상태로 갱신한 뒤 소유권/사용 가능 여부를 재검증하므로, 동시 요청 중 한 건만 성공한다.
    * - 재계산한 할인액이 calculateDiscount() 시점의 expectedDiscount와 다르면 COUPON_DISCOUNT_MISMATCH.
    * - MANDATORY: 호출자(주문 생성)의 트랜잭션에 반드시 참여해야 한다. 단독 커밋되면 주문 생성이 실패해도
    *   쿠폰이 USED로 남기 때문이다. 이 메서드에서 발생한 예외는 호출자가 삼키지 말고 그대로 전파해야 한다.
@@ -155,6 +157,9 @@ public class UserCouponService {
       throw new BusinessException(CouponErrorCode.INVALID_ORDER_ID);
     }
     UserCoupon userCoupon = getOwnedUserCouponWithLock(userId, userCouponId);
+    // calculateDiscount()가 같은 트랜잭션에서 먼저 읽은 엔티티가 있으면 락 조회는 그 인스턴스를 상태 갱신 없이 돌려준다.
+    // 락 대기 중 다른 주문이 커밋한 상태를 놓치지 않도록, 락을 잡은 뒤 DB의 최신 상태로 다시 읽는다.
+    entityManager.refresh(userCoupon);
     OffsetDateTime now = OffsetDateTime.now();
     BigDecimal discountAmount = validateAndCalculate(userCoupon, orderAmount, now);
     if (expectedDiscount == null || discountAmount.compareTo(expectedDiscount) != 0) {
@@ -180,15 +185,6 @@ public class UserCouponService {
     List<UserCoupon> usedCoupons = userCouponRepository.findByUsedOrderIdWithLock(orderId);
     usedCoupons.forEach(UserCoupon::restore);
     return usedCoupons.size();
-  }
-
-  public CouponDiscountResponseDto useCoupon(Long userId, Long userCouponId, BigDecimal orderAmount, Long orderId) {
-    UserCoupon userCoupon = getOwnedUserCouponWithLock(userId, userCouponId);
-    OffsetDateTime now = OffsetDateTime.now();
-    BigDecimal discountAmount = validateAndCalculate(userCoupon, orderAmount, now);
-    userCoupon.markUsed(orderAmount, discountAmount, orderId, now);
-
-    return couponMapper.toCouponDiscountResponseDto(userCoupon, orderAmount, discountAmount);
   }
 
   private UserCoupon getOwnedUserCoupon(Long userId, Long userCouponId) {
