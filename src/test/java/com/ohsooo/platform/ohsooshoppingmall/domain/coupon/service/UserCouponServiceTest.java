@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,6 +24,7 @@ import com.ohsooo.platform.ohsooshoppingmall.domain.coupon.repository.UserCoupon
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.entity.User;
 import com.ohsooo.platform.ohsooshoppingmall.domain.identity.user.repository.UserRepository;
 import com.ohsooo.platform.ohsooshoppingmall.global.exception.BusinessException;
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -30,6 +33,7 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.postgresql.util.PSQLException;
@@ -56,12 +60,15 @@ class UserCouponServiceTest {
   @Mock
   private CouponService couponService;
 
+  @Mock
+  private EntityManager entityManager;
+
   private final CouponMapper couponMapper = new CouponMapper();
 
   private UserCouponService userCouponService;
 
   private UserCouponService service() {
-    return new UserCouponService(userCouponRepository, userRepository, couponService, couponMapper);
+    return new UserCouponService(userCouponRepository, userRepository, couponService, couponMapper, entityManager);
   }
 
   private User mockUser(Long userId) {
@@ -500,6 +507,29 @@ class UserCouponServiceTest {
     assertThat(userCoupon.getDiscountAppliedAmount()).isEqualByComparingTo("1649");
     assertThat(userCoupon.getUsedAt()).isNotNull();
     verify(userCouponRepository, never()).findById(any());
+  }
+
+  @Test
+  void redeem은_락을_잡은_뒤_갱신한_최신_상태로_검증해_먼저_커밋된_사용을_덮어쓰지_않는다() {
+    userCouponService = service();
+    UserCoupon userCoupon = UserCoupon.issue(mockUser(OWNER_ID), usableNowCoupon(), NOW);
+    when(userCouponRepository.findByIdWithLock(100L)).thenReturn(Optional.of(userCoupon));
+    // 락 대기 중 다른 주문이 커밋한 상태를 refresh가 엔티티에 반영하는 상황
+    doAnswer(invocation -> {
+      userCoupon.markUsed(BigDecimal.valueOf(5000), BigDecimal.valueOf(3000), 1L, NOW);
+      return null;
+    }).when(entityManager).refresh(userCoupon);
+
+    assertThatThrownBy(() -> userCouponService.redeem(
+        OWNER_ID, 100L, 2L, BigDecimal.valueOf(5000), BigDecimal.valueOf(3000)))
+        .isInstanceOf(BusinessException.class)
+        .extracting(e -> ((BusinessException) e).getErrorCode())
+        .isEqualTo(CouponErrorCode.USER_COUPON_ALREADY_USED);
+
+    assertThat(userCoupon.getUsedOrderId()).isEqualTo(1L);
+    InOrder lockThenRefresh = inOrder(userCouponRepository, entityManager);
+    lockThenRefresh.verify(userCouponRepository).findByIdWithLock(100L);
+    lockThenRefresh.verify(entityManager).refresh(userCoupon);
   }
 
   @Test
